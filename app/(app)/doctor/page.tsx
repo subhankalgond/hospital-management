@@ -16,7 +16,20 @@ export default function DoctorQueue() {
   const appointments = useStore((s) => s.appointments);
   const setQueueStatus = useStore((s) => s.setQueueStatus);
   const markNoShow = useStore((s) => s.markNoShow);
-  const me = doctors.find((d) => d.id === session.doctorId)!;
+  const me = doctors.find((d) => d.id === session.doctorId);
+
+  if (!me) {
+    return (
+      <>
+        <PageHeader title="Today's queue" />
+        <EmptyState
+          emoji="🩺"
+          title="Doctor profile not found"
+          description="Your account exists but has no linked doctor profile."
+        />
+      </>
+    );
+  }
 
   const today = todayISO();
   const queue = appointments
@@ -47,7 +60,7 @@ export default function DoctorQueue() {
           <EmptyState emoji="☕" title="No appointments today" description="Enjoy the calm — your schedule is clear." />
         )}
         {queue.map((a) => {
-          const p = patients.find((x) => x.id === a.patientId)!;
+          const p = patients.find((x) => x.id === a.patientId);
           const st = a.queueStatus ?? "waiting";
           return (
             <Card key={a.id} className={"p-5 transition-all " + (st === "in-progress" ? "ring-2 ring-primary/40" : "")}>
@@ -56,12 +69,12 @@ export default function DoctorQueue() {
                   <p className="font-display text-lg font-bold tabular-nums">{a.time}</p>
                   <p className="text-xs text-muted-foreground">{a.durationMin} min</p>
                 </div>
-                <Avatar name={p.name} />
+                <Avatar name={p?.name ?? "?"} />
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{p.name} <span className="ml-1 text-xs font-normal text-muted-foreground">{p.id.toUpperCase()}</span></p>
+                  <p className="font-semibold">{p?.name ?? "Unknown patient"} <span className="ml-1 text-xs font-normal text-muted-foreground">{p?.id.toUpperCase()}</span></p>
                   <p className="truncate text-sm text-muted-foreground">{a.reason}</p>
                 </div>
-                {p.allergies.length > 0 && (
+                {p && p.allergies.length > 0 && (
                   <Badge variant="destructive">⚠ {p.allergies[0]}</Badge>
                 )}
                 <div className="flex items-center gap-2">
@@ -136,7 +149,7 @@ function CompleteVisitDialog({ appt, onClose }: { appt: Appointment | null; onCl
   }, [appt]);
 
   if (!appt) return null;
-  const p = patients.find((x) => x.id === appt.patientId)!;
+  const p = patients.find((x) => x.id === appt.patientId);
 
   function save() {
     if (!appt || !diagnosis.trim()) return;
@@ -179,7 +192,7 @@ function CompleteVisitDialog({ appt, onClose }: { appt: Appointment | null; onCl
   return (
     <Dialog open={!!appt} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
-        title={`Complete visit — ${p.name}`}
+        title={`Complete visit — ${p?.name ?? "patient"}`}
         description={appt.reason}
         className="max-w-xl"
       >

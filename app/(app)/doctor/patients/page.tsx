@@ -36,7 +36,15 @@ export default function DoctorPatients() {
         }
       />
 
-      {filtered.length === 0 && <EmptyState emoji="🔍" title="No patients match" description={`Nothing found for “${q}”.`} />}
+      {patients.length === 0 ? (
+        <EmptyState
+          emoji="🤝"
+          title="No patients registered yet"
+          description="Patients appear here as soon as they create a CarePulse account."
+        />
+      ) : (
+        filtered.length === 0 && <EmptyState emoji="🔍" title="No patients match" description={`Nothing found for “${q}”.`} />
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {filtered.map((p) => (

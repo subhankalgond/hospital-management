@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { CalendarPlus, Clock, MapPin, Stethoscope } from "lucide-react";
+import { CalendarPlus, Clock, MapPin, Search, Stethoscope, GraduationCap } from "lucide-react";
 import { useStore, type Slot } from "@/lib/store";
-import type { Appointment } from "@/lib/types";
+import type { Appointment, Doctor } from "@/lib/types";
 import {
   Button,
   Card,
@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogTrigger, Select, SelectContent, SelectItem
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader, ApptStatus } from "@/components/ui/misc";
 import { dayLabel, dateLabel } from "@/lib/utils";
+import { DEPARTMENT_NAMES } from "@/lib/defaults";
 
 const REASONS = [
   "General consultation",
@@ -45,6 +46,7 @@ export default function PatientAppointments() {
     .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
 
   // booking form state
+  const [open, setOpen] = React.useState(false);
   const [doctorId, setDoctorId] = React.useState("");
   const [date, setDate] = React.useState(() => {
     const d = new Date();
@@ -53,7 +55,15 @@ export default function PatientAppointments() {
   });
   const [reason, setReason] = React.useState("");
   const [slot, setSlot] = React.useState<string | null>(null);
-  const [open, setOpen] = React.useState(false);
+
+  // doctor browser filters
+  const [deptFilter, setDeptFilter] = React.useState("all");
+  const [q, setQ] = React.useState("");
+
+  const visibleDoctors = doctors
+    .filter((d) => (deptFilter === "all" ? true : d.department === deptFilter))
+    .filter((d) => `${d.name} ${d.specialty} ${d.department}`.toLowerCase().includes(q.toLowerCase()));
+
   const slots = doctorId && date ? slotsFor(doctorId, date) : [];
   const canBook = doctorId && reason.trim() && slot;
 
@@ -73,6 +83,8 @@ export default function PatientAppointments() {
       setDoctorId("");
       setReason("");
       setSlot(null);
+      setQ("");
+      setDeptFilter("all");
     }
   }
 
@@ -90,91 +102,155 @@ export default function PatientAppointments() {
             </DialogTrigger>
             <DialogContent
               title="Book an appointment"
-              description="Pick a doctor, day and an open time slot."
+              description="Choose from doctors registered on CarePulse."
+              className="max-w-xl"
             >
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label>Doctor</Label>
-                  <Select value={doctorId} onValueChange={setDoctorId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a specialist" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {doctors.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name} — {d.specialty}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="appt-date">Date</Label>
-                  <Input
-                    id="appt-date"
-                    type="date"
-                    value={date}
-                    min={today}
-                    onChange={(e) => setDate(e.target.value)}
+              {doctors.length === 0 ? (
+                <div className="py-4">
+                  <EmptyState
+                    emoji="🩺"
+                    title="No doctors have signed up yet"
+                    description="As soon as a doctor registers, they'll appear here and you can book them."
                   />
                 </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* doctor browser */}
+                  <div className="space-y-2">
+                    <Label>Doctor *</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={q}
+                          onChange={(e) => setQ(e.target.value)}
+                          placeholder="Search name or specialty…"
+                          className="pl-9"
+                          aria-label="Search doctors"
+                        />
+                      </div>
+                      <Select value={deptFilter} onValueChange={setDeptFilter}>
+                        <SelectTrigger className="w-44">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All departments</SelectItem>
+                          {DEPARTMENT_NAMES.map((d) => (
+                            <SelectItem key={d} value={d}>
+                              {d}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-1.5">
-                  <Label>Available slots</Label>
-                  {doctorId ? (
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-                      {slots.map((s: Slot) => (
+                    <div className="max-h-52 space-y-2 overflow-y-auto pr-1 scrollbar-thin">
+                      {visibleDoctors.length === 0 && (
+                        <p className="rounded-lg bg-muted/60 px-3 py-4 text-center text-sm text-muted-foreground">
+                          No doctors match your search.
+                        </p>
+                      )}
+                      {visibleDoctors.map((d) => (
                         <button
-                          key={s.time}
-                          disabled={!s.available}
-                          onClick={() => setSlot(s.time)}
+                          key={d.id}
+                          type="button"
+                          onClick={() => setDoctorId(d.id)}
                           className={
-                            "rounded-lg border px-2 py-2 text-xs font-medium tabular-nums transition-all " +
-                            (slot === s.time
-                              ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                              : s.available
-                                ? "bg-card hover:border-primary hover:bg-accent"
-                                : "cursor-not-allowed bg-muted text-muted-foreground/50 line-through")
+                            "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all " +
+                            (doctorId === d.id
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/40"
+                              : "bg-card hover:border-primary/40 hover:bg-accent/50")
                           }
                         >
-                          {s.time}
+                          <span className="rounded-lg bg-primary/10 p-2 text-primary">
+                            <Stethoscope className="size-4" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2">
+                              <span className="truncate font-semibold">{d.name}</span>
+                              {d.onCall && <Badge variant="success">On call</Badge>}
+                            </span>
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {d.specialty} · {d.department} · {d.experienceYears}y
+                            </span>
+                          </span>
                         </button>
                       ))}
                     </div>
-                  ) : (
-                    <p className="rounded-lg bg-muted/60 px-3 py-4 text-center text-sm text-muted-foreground">
-                      Select a doctor to see open slots
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="appt-reason">Reason for visit</Label>
-                  <Input
-                    id="appt-reason"
-                    placeholder="e.g. chest discomfort during exercise"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                  />
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {REASONS.map((r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => setReason(r)}
-                        className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground hover:bg-secondary/70"
-                      >
-                        {r}
-                      </button>
-                    ))}
+                    {doctorId && (
+                      <p className="text-xs text-muted-foreground">
+                        Selected: <span className="font-medium text-foreground">{doctors.find((d) => d.id === doctorId)?.name}</span>
+                      </p>
+                    )}
                   </div>
-                </div>
 
-                <Button variant="gradient" className="w-full" size="lg" disabled={!canBook} onClick={submit}>
-                  Confirm booking
-                </Button>
-              </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="appt-date">Date</Label>
+                    <Input
+                      id="appt-date"
+                      type="date"
+                      value={date}
+                      min={today}
+                      onChange={(e) => setDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Available slots</Label>
+                    {doctorId ? (
+                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
+                        {slots.map((s: Slot) => (
+                          <button
+                            key={s.time}
+                            disabled={!s.available}
+                            onClick={() => setSlot(s.time)}
+                            className={
+                              "rounded-lg border px-2 py-2 text-xs font-medium tabular-nums transition-all " +
+                              (slot === s.time
+                                ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                : s.available
+                                  ? "bg-card hover:border-primary hover:bg-accent"
+                                  : "cursor-not-allowed bg-muted text-muted-foreground/50 line-through")
+                            }
+                          >
+                            {s.time}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="rounded-lg bg-muted/60 px-3 py-4 text-center text-sm text-muted-foreground">
+                        Select a doctor to see open slots
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="appt-reason">Reason for visit</Label>
+                    <Input
+                      id="appt-reason"
+                      placeholder="e.g. chest discomfort during exercise"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                    />
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {REASONS.map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setReason(r)}
+                          className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground hover:bg-secondary/70"
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button variant="gradient" className="w-full" size="lg" disabled={!canBook} onClick={submit}>
+                    Confirm booking
+                  </Button>
+                </div>
+              )}
             </DialogContent>
           </Dialog>
         }
@@ -229,10 +305,16 @@ function AppointmentCard({ appt, onCancel }: { appt: Appointment; onCancel?: () 
             <span className="mt-1 text-[11px] font-semibold">{doc?.department}</span>
           </div>
           <div className="min-w-0">
-            <p className="font-semibold">{doc?.name}</p>
+            <p className="font-semibold">{doc?.name ?? "Doctor no longer listed"}</p>
             <p className="text-sm text-muted-foreground">
-              {appt.reason} · Room {doc?.room}
+              {appt.reason}
+              {doc?.room && doc.room !== "—" ? ` · Room ${doc.room}` : ""}
             </p>
+            {doc && (
+              <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <GraduationCap className="size-3.5" /> {doc.qualification} · {doc.experienceYears}y experience
+              </p>
+            )}
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="size-4" /> {dateLabel(appt.date)} · {appt.time}
@@ -257,15 +339,26 @@ function AppointmentCard({ appt, onCancel }: { appt: Appointment; onCancel?: () 
                   Reschedule
                 </Button>
               </DialogTrigger>
-              <DialogContent title="Reschedule appointment" description={`With ${doc?.name}`}>
+              <DialogContent title="Reschedule appointment" description={`With ${doc?.name ?? "doctor"}`}>
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="rs-date">New date</Label>
-                    <Input id="rs-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                    <Input id="rs-date" type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="rs-time">New time</Label>
-                    <Input id="rs-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+                    <Select value={time} onValueChange={setTime}>
+                      <SelectTrigger id="rs-time">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(doc ? useStore.getState().slotsFor(doc.id, date) : []).map((s) => (
+                          <SelectItem key={s.time} value={s.time} disabled={!s.available && s.time !== appt.time}>
+                            {s.time}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <Button
                     variant="gradient"
@@ -286,4 +379,3 @@ function AppointmentCard({ appt, onCancel }: { appt: Appointment; onCancel?: () 
     </Card>
   );
 }
-

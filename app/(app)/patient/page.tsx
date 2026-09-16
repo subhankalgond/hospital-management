@@ -16,8 +16,17 @@ export default function PatientDashboard() {
   const invoices = useStore((s) => s.invoices);
   const visits = useStore((s) => s.visits);
 
-  const me = patients.find((p) => p.id === session.patientId)!;
+  const me = patients.find((p) => p.id === session.patientId);
   const today = new Date().toISOString().slice(0, 10);
+
+  if (!me) {
+    return (
+      <>
+        <PageHeader title="Welcome" />
+        <Card className="p-10 text-center text-muted-foreground">Profile not found.</Card>
+      </>
+    );
+  }
 
   const upcoming = appointments
     .filter((a) => a.patientId === me.id && a.date >= today && a.status !== "cancelled" && a.status !== "completed")

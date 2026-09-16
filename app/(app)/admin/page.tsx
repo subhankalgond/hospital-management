@@ -3,11 +3,21 @@
 import Link from "next/link";
 import { BedDouble, CalendarCheck, FlaskConical, TrendingUp } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { Badge, Card, CardContent, CardHeader, CardTitle, Progress, StatCard } from "@/components/ui/primitives";
+import { Badge, Card, CardContent, CardHeader, CardTitle, Progress, StatCard, EmptyState } from "@/components/ui/primitives";
 import { PageHeader, InvoiceStatusBadge } from "@/components/ui/misc";
 import { RevenueArea, DeptBars } from "@/components/ui/charts";
-import { revenueSeries } from "@/lib/seed";
-import { fmtMoney, todayISO, dateLabel } from "@/lib/utils";
+import { fmtMoney, todayISO, dateLabel, addDays } from "@/lib/utils";
+
+/** revenue for the last 7 days, derived from actually-paid invoices */
+function revenueFromInvoices(paidInvoices: { paidAt?: string; items: { amount: number }[] }[]) {
+  const days = Array.from({ length: 7 }, (_, i) => addDays(todayISO(), i - 6));
+  return days.map((d) => {
+    const total = paidInvoices
+      .filter((inv) => inv.paidAt === d)
+      .reduce((s, inv) => s + inv.items.reduce((x, it) => x + it.amount, 0), 0);
+    return { day: d.slice(5), revenue: total };
+  });
+}
 
 export default function AdminDashboard() {
   const appointments = useStore((s) => s.appointments);
@@ -19,12 +29,13 @@ export default function AdminDashboard() {
 
   const today = todayISO();
   const todaysAppts = appointments.filter((a) => a.date === today && a.status !== "cancelled");
-  const weekRevenue = revenueSeries().reduce((s, d) => s + d.revenue, 0);
+  const revenue = revenueFromInvoices(invoices.filter((i) => i.status === "paid"));
+  const weekRevenue = revenue.reduce((s, d) => s + d.revenue, 0);
   const pendingLabs = labs.filter((l) => l.status !== "resulted");
 
   const allBeds = wards.flatMap((w) => w.rooms.flatMap((r) => r.beds));
   const occupied = allBeds.filter((b) => b.patientId).length;
-  const occupancy = Math.round((occupied / allBeds.length) * 100);
+  const occupancy = allBeds.length ? Math.round((occupied / allBeds.length) * 100) : 0;
 
   const deptCounts = doctors.map((d) => ({
     dept: d.department.split(" ")[0],
@@ -32,6 +43,7 @@ export default function AdminDashboard() {
   }));
 
   const recentInvoices = [...invoices].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+  const onCallDocs = doctors.filter((d) => d.onCall);
 
   return (
     <>
@@ -39,7 +51,7 @@ export default function AdminDashboard() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Appointments today" value={todaysAppts.length} icon={<CalendarCheck className="size-5" />} tone="primary" sub={`${appointments.filter((a) => a.date === today && a.queueStatus === "completed").length} completed so far`} />
-        <StatCard label="Revenue (7 days)" value={fmtMoney(weekRevenue)} icon={<TrendingUp className="size-5" />} tone="success" sub="Paid + baseline simulation" />
+        <StatCard label="Revenue (7 days)" value={fmtMoney(weekRevenue)} icon={<TrendingUp className="size-5" />} tone="success" sub="From paid invoices" />
         <StatCard label="Bed occupancy" value={`${occupancy}%`} icon={<BedDouble className="size-5" />} tone={occupancy > 80 ? "warning" : "default"} sub={`${occupied}/${allBeds.length} beds occupied`} />
         <StatCard label="Pending labs" value={pendingLabs.length} icon={<FlaskConical className="size-5" />} tone={pendingLabs.length ? "warning" : "success"} sub="Requested or in progress" />
       </div>
@@ -50,7 +62,15 @@ export default function AdminDashboard() {
             <CardTitle>Revenue — last 7 days</CardTitle>
           </CardHeader>
           <CardContent>
-            <RevenueArea data={revenueSeries()} />
+            {weekRevenue === 0 ? (
+              <EmptyState
+                emoji="📈"
+                title="No revenue recorded yet"
+                description="Once invoices are marked as paid, collections show up here."
+              />
+            ) : (
+              <RevenueArea data={revenue} />
+            )}
           </CardContent>
         </Card>
 
@@ -59,7 +79,11 @@ export default function AdminDashboard() {
             <CardTitle>Appointments by department</CardTitle>
           </CardHeader>
           <CardContent>
-            <DeptBars data={deptCounts} />
+            {deptCounts.length === 0 ? (
+              <EmptyState emoji="🩺" title="No doctors registered yet" description="Departments fill in as doctors sign up." />
+            ) : (
+              <DeptBars data={deptCounts} />
+            )}
           </CardContent>
         </Card>
       </div>
@@ -70,7 +94,7 @@ export default function AdminDashboard() {
             <CardTitle>On-call now</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2.5">
-            {doctors.filter((d) => d.onCall).map((d) => (
+            {onCallDocs.map((d) => (
               <div key={d.id} className="flex items-center justify-between rounded-xl border p-3">
                 <div>
                   <p className="font-medium">{d.name}</p>
@@ -79,7 +103,7 @@ export default function AdminDashboard() {
                 <Badge variant="success">On call</Badge>
               </div>
             ))}
-            {doctors.filter((d) => d.onCall).length === 0 && (
+            {onCallDocs.length === 0 && (
               <p className="text-sm text-muted-foreground">No doctors currently on call.</p>
             )}
           </CardContent>
@@ -93,12 +117,17 @@ export default function AdminDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2.5">
+            {recentInvoices.length === 0 && (
+              <p className="rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+                No invoices yet — bookings create them automatically.
+              </p>
+            )}
             {recentInvoices.map((inv) => {
               const p = patients.find((x) => x.id === inv.patientId);
               return (
                 <div key={inv.id} className="flex items-center justify-between rounded-xl border p-3">
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{p?.name}</p>
+                    <p className="truncate font-medium">{p?.name ?? "Unknown patient"}</p>
                     <p className="text-xs text-muted-foreground">{inv.id} · {dateLabel(inv.date)}</p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -120,7 +149,7 @@ export default function AdminDashboard() {
           {wards.map((w) => {
             const beds = w.rooms.flatMap((r) => r.beds);
             const occ = beds.filter((b) => b.patientId).length;
-            const pct = Math.round((occ / beds.length) * 100);
+            const pct = beds.length ? Math.round((occ / beds.length) * 100) : 0;
             return (
               <div key={w.id}>
                 <div className="mb-1.5 flex items-center justify-between text-sm">

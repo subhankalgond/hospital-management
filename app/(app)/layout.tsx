@@ -236,7 +236,7 @@ function SidebarContent({
         })}
       </nav>
       <div className="border-t p-4 text-xs text-muted-foreground">
-        CarePulse v1.0 · demo build
+        CarePulse v1.0
       </div>
     </>
   );

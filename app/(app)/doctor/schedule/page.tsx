@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useStore } from "@/lib/store";
-import { Badge, Card, CardHeader, CardTitle } from "@/components/ui/primitives";
+import { Badge, Card, CardHeader, CardTitle, EmptyState } from "@/components/ui/primitives";
 import { PageHeader, ApptStatus } from "@/components/ui/misc";
 import { addDays, dateLabel } from "@/lib/utils";
 
@@ -11,7 +11,16 @@ export default function DoctorSchedule() {
   const doctors = useStore((s) => s.doctors);
   const patients = useStore((s) => s.patients);
   const appointments = useStore((s) => s.appointments);
-  const me = doctors.find((d) => d.id === session.doctorId)!;
+  const me = doctors.find((d) => d.id === session.doctorId);
+
+  if (!me) {
+    return (
+      <>
+        <PageHeader title="My schedule" />
+        <EmptyState emoji="🗓" title="Doctor profile not found" description="Your account exists but has no linked doctor profile." />
+      </>
+    );
+  }
 
   // week starts Monday
   const now = new Date();
@@ -54,14 +63,14 @@ export default function DoctorSchedule() {
                   </p>
                 )}
                 {appts.map((a) => {
-                  const p = patients.find((x) => x.id === a.patientId)!;
+                  const p = patients.find((x) => x.id === a.patientId);
                   return (
                     <div key={a.id} className="rounded-xl border p-3 transition-colors hover:bg-muted/40">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold tabular-nums">{a.time}</span>
                         <ApptStatus status={a.status} />
                       </div>
-                      <p className="mt-1 truncate text-sm font-medium">{p?.name}</p>
+                      <p className="mt-1 truncate text-sm font-medium">{p?.name ?? "Unknown patient"}</p>
                       <p className="truncate text-xs text-muted-foreground">{a.reason}</p>
                     </div>
                   );

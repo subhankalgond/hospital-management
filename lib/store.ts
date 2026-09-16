@@ -4,33 +4,22 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { nanoid } from "nanoid";
 import type {
+  Account,
   Appointment,
   Doctor,
   Invoice,
   LabRequest,
   Patient,
   Prescription,
-  Role,
-  StaffMember,
+  SignUpInput,
   Toast,
-  User,
   Visit,
   VisitStatus,
   Ward,
 } from "./types";
-import {
-  appointments as seedAppointments,
-  demoUsers,
-  doctors as seedDoctors,
-  invoices as seedInvoices,
-  labRequests as seedLabs,
-  patients as seedPatients,
-  prescriptions as seedPrescriptions,
-  staff as seedStaff,
-  visits as seedVisits,
-  wards as seedWards,
-} from "./seed";
 import { addDays, todayISO } from "./utils";
+import { hashPassword, randomSalt, verifyPassword } from "./auth";
+import { ADMIN_ACCESS_CODE, departmentFee, initialWards } from "./defaults";
 
 export interface Slot {
   time: string;
@@ -73,10 +62,22 @@ interface NewLabInput {
   test: string;
 }
 
+/** resolved account + profile of whoever is signed in */
+export interface SessionUser {
+  id: string;
+  role: Account["role"];
+  name: string;
+  email: string;
+  avatarHue: number;
+  patientId?: string;
+  doctorId?: string;
+  accountId: string;
+}
+
 interface State {
-  /** anchor for the daily seed-date rebase (see rebaseSeedDates) */
+  /** anchor for the daily date rebase (see rebaseSeedDates) */
   seededOn: string;
-  users: User[];
+  accounts: Account[];
   doctors: Doctor[];
   patients: Patient[];
   appointments: Appointment[];
@@ -85,13 +86,13 @@ interface State {
   invoices: Invoice[];
   labs: LabRequest[];
   wards: Ward[];
-  staff: StaffMember[];
-  session: User | null;
+  session: SessionUser | null;
   theme: "light" | "dark";
   toasts: Toast[];
 
   // auth
-  loginAsRole: (role: Role) => void;
+  signUp: (input: SignUpInput) => Promise<{ ok: boolean; error?: string }>;
+  signIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
   toggleTheme: () => void;
 
@@ -126,18 +127,15 @@ interface State {
   assignBed: (wardId: string, roomId: string, bedId: string, patientId: string) => void;
   dischargeBed: (wardId: string, roomId: string, bedId: string) => void;
 
-  // staff
-  toggleOnCall: (staffId: string) => void;
-}
+  // doctors
+  setDoctorOnCall: (doctorId: string, onCall: boolean) => void;
 
-const docBaseFee: Record<string, number> = {
-  Cardiology: 180,
-  Pediatrics: 150,
-  Dermatology: 160,
-  Orthopedics: 190,
-  Neurology: 175,
-  "General Medicine": 150,
-};
+  // patient profile
+  updatePatientProfile: (
+    patientId: string,
+    patch: Partial<Pick<Patient, "phone" | "address" | "bloodGroup" | "emergencyContact" | "allergies" | "conditions" | "insurance">>
+  ) => void;
+}
 
 function addDaysISO(days: number) {
   const d = new Date();
@@ -145,74 +143,163 @@ function addDaysISO(days: number) {
   return d.toISOString().slice(0, 10);
 }
 
-/**
- * Seed data is generated relative to "today" at runtime, then persisted to
- * localStorage. Without this, "today's queue" freezes on the date the store
- * was first created and drifts into the past every midnight. On each
- * hydration we shift every relative date forward by however many days have
- * passed since the store was seeded, keeping today/history/upcoming aligned
- * with the real calendar while preserving any user-made changes.
- */
-function rebaseSeedDates(persisted: unknown, today: string): Record<string, unknown> | null {
-  if (!persisted || typeof persisted !== "object") return null;
-  const p = persisted as Record<string, unknown>;
-  const seededOn = typeof p.seededOn === "string" ? p.seededOn : null;
-  if (!seededOn || seededOn === today) return p;
-
-  const delta = Math.round(
-    (new Date(today + "T00:00:00").getTime() - new Date(seededOn + "T00:00:00").getTime()) / 86_400_000
-  );
-  if (delta === 0) return p;
-
-  const shift = (iso: string) => addDays(iso, delta);
-  const shiftOpt = (iso?: string) => (typeof iso === "string" ? addDays(iso, delta) : iso);
-  const mapAll = <X,>(arr: unknown, fn: (x: X) => X) =>
-    Array.isArray(arr) ? (arr as X[]).map(fn) : (arr as X[]);
-
+/** Derive the lightweight session view from an account + current profiles. */
+function sessionFor(account: Account, patients: Patient[], doctors: Doctor[]): SessionUser {
+  const name =
+    account.role === "patient"
+      ? patients.find((p) => p.id === account.patientId)?.name ?? account.name
+      : account.role === "doctor"
+        ? doctors.find((d) => d.id === account.doctorId)?.name ?? account.name
+        : account.name;
   return {
-    ...p,
-    seededOn: today,
-    appointments: mapAll<Appointment>(p.appointments, (a) => ({ ...a, date: shift(a.date) })),
-    invoices: mapAll<Invoice>(p.invoices, (i) => ({ ...i, date: shift(i.date), dueDate: shift(i.dueDate), paidAt: shiftOpt(i.paidAt) })),
-    prescriptions: mapAll<Prescription>(p.prescriptions, (r) => ({ ...r, date: shift(r.date) })),
-    visits: mapAll<Visit>(p.visits, (v) => ({ ...v, date: shift(v.date) })),
-    labs: mapAll<LabRequest>(p.labs, (l) => ({ ...l, requestedOn: shift(l.requestedOn) })),
-    wards: mapAll<Ward>(p.wards, (w) => ({
-      ...w,
-      rooms: w.rooms.map((r) => ({
-        ...r,
-        beds: r.beds.map((b) => ({ ...b, since: shiftOpt(b.since) })),
-      })),
-    })),
-    patients: mapAll<Patient>(p.patients, (pt) => ({
-      ...pt,
-      immunizations: pt.immunizations.map((im) => ({ ...im, date: shift(im.date) })),
-    })),
+    id: account.id,
+    role: account.role,
+    name,
+    email: account.email,
+    avatarHue: (account.name.length * 37) % 360,
+    patientId: account.patientId,
+    doctorId: account.doctorId,
+    accountId: account.id,
   };
 }
+
+function emailTaken(accounts: Account[], email: string) {
+  return accounts.some((a) => a.email === email.trim().toLowerCase());
+}
+
+const PASSWORD_MIN = 8;
 
 export const useStore = create<State>()(
   persist(
     (set, get) => ({
       seededOn: todayISO(),
-      users: demoUsers,
-      doctors: seedDoctors,
-      patients: seedPatients,
-      appointments: seedAppointments,
-      prescriptions: seedPrescriptions,
-      visits: seedVisits,
-      invoices: seedInvoices,
-      labs: seedLabs,
-      wards: seedWards,
-      staff: seedStaff,
+      accounts: [],
+      doctors: [],
+      patients: [],
+      appointments: [],
+      prescriptions: [],
+      visits: [],
+      invoices: [],
+      labs: [],
+      wards: initialWards(),
       session: null,
       theme: "light",
       toasts: [],
 
-      loginAsRole: (role) => {
-        const user = demoUsers.find((u) => u.role === role) ?? demoUsers[0];
-        set({ session: user });
+      // ───────────────────────── auth ─────────────────────────
+      signUp: async (input) => {
+        const state = get();
+        const email = input.email.trim().toLowerCase();
+        const name = input.name.trim();
+
+        if (!name || !email || !input.password) {
+          return { ok: false, error: "Please fill in all required fields." };
+        }
+        if (input.password.length < PASSWORD_MIN) {
+          return { ok: false, error: `Password must be at least ${PASSWORD_MIN} characters.` };
+        }
+        if (emailTaken(state.accounts, email)) {
+          return { ok: false, error: "An account with this email already exists. Try signing in instead." };
+        }
+
+        if (input.role === "admin" && input.accessCode.trim() !== ADMIN_ACCESS_CODE) {
+          return { ok: false, error: "Invalid administrator access code." };
+        }
+
+        const salt = randomSalt();
+        const passwordHash = await hashPassword(input.password, salt);
+        const createdAt = todayISO();
+        const accountId = "u-" + nanoid(8);
+
+        let account: Account;
+
+        if (input.role === "patient") {
+          if (!input.phone.trim() || !input.dob) {
+            return { ok: false, error: "Phone and date of birth are required." };
+          }
+          const patientId = "P-" + nanoid(6).toUpperCase();
+          const patient: Patient = {
+            id: patientId,
+            name,
+            email,
+            phone: input.phone.trim(),
+            dob: input.dob,
+            gender: input.gender,
+            bloodGroup: "",
+            address: "",
+            emergencyContact: { name: "", phone: "", relation: "" },
+            allergies: [],
+            conditions: [],
+            immunizations: [],
+            insurance: { provider: "", number: "" },
+          };
+          account = { id: accountId, role: "patient", name, email, passwordHash, salt, createdAt, patientId };
+          set({ patients: [...state.patients, patient], accounts: [...state.accounts, account] });
+        } else if (input.role === "doctor") {
+          if (!input.phone.trim() || !input.qualification.trim() || !input.licenseNo.trim()) {
+            return { ok: false, error: "Qualification, license number and phone are required for doctors." };
+          }
+          if (!input.department || !input.specialty) {
+            return { ok: false, error: "Please choose a department and specialty." };
+          }
+          if (!(input.experienceYears >= 0)) {
+            return { ok: false, error: "Years of experience must be zero or more." };
+          }
+          const doctorId = "D-" + nanoid(6).toUpperCase();
+          const doctor: Doctor = {
+            id: doctorId,
+            name,
+            qualification: input.qualification.trim(),
+            licenseNo: input.licenseNo.trim(),
+            specialty: input.specialty,
+            department: input.department,
+            email,
+            phone: input.phone.trim(),
+            room: input.room?.trim() || "—",
+            experienceYears: input.experienceYears,
+            rating: 0,
+            onCall: false,
+            shift: input.shift,
+          };
+          account = { id: accountId, role: "doctor", name, email, passwordHash, salt, createdAt, doctorId };
+          set({ doctors: [...state.doctors, doctor], accounts: [...state.accounts, account] });
+        } else {
+          account = { id: accountId, role: "admin", name, email, passwordHash, salt, createdAt };
+          set({ accounts: [...state.accounts, account] });
+        }
+
+        set({ session: sessionFor(account, get().patients, get().doctors) });
+        toastSafe(get, {
+          title: `Welcome to CarePulse, ${name.split(" ")[0]} 👋`,
+          description:
+            input.role === "doctor"
+              ? "Your doctor profile is live — patients can now book you."
+              : input.role === "admin"
+                ? "Administrator account created."
+                : "Your patient account is ready.",
+          variant: "success",
+        });
+        return { ok: true };
       },
+
+      signIn: async (email, password) => {
+        const state = get();
+        const account = state.accounts.find((a) => a.email === email.trim().toLowerCase());
+        if (!account) {
+          return { ok: false, error: "No account found with this email." };
+        }
+        const valid = await verifyPassword(password, account.salt, account.passwordHash);
+        if (!valid) {
+          return { ok: false, error: "Incorrect password. Please try again." };
+        }
+        set({ session: sessionFor(account, state.patients, state.doctors) });
+        toastSafe(get, {
+          title: `Welcome back, ${account.name.split(" ")[0]} 👋`,
+          variant: "success",
+        });
+        return { ok: true };
+      },
+
       logout: () => set({ session: null }),
       toggleTheme: () => set((s) => ({ theme: s.theme === "light" ? "dark" : "light" })),
 
@@ -223,6 +310,7 @@ export const useStore = create<State>()(
       },
       dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })),
 
+      // ─────────────────── appointments ───────────────────
       bookAppointment: (input) => {
         const { appointments, doctors, toast } = get();
         const taken = appointments.some(
@@ -250,8 +338,8 @@ export const useStore = create<State>()(
         };
         set({ appointments: [...appointments, appt] });
 
-        // auto-generate the consultation invoice
-        const fee = docBaseFee[doctor?.department ?? ""] ?? 150;
+        // auto-generate the consultation invoice from the department fee
+        const fee = doctor ? departmentFee(doctor.department) : 150;
         const inv: Invoice = {
           id: "INV-" + nanoid(6).toUpperCase(),
           patientId: input.patientId,
@@ -336,6 +424,7 @@ export const useStore = create<State>()(
         });
       },
 
+      // ─────────────── visits & prescriptions ───────────────
       addVisit: (input) => {
         const visit: Visit = { id: "V-" + nanoid(6).toUpperCase(), ...input };
         set((s) => ({ visits: [visit, ...s.visits] }));
@@ -353,6 +442,7 @@ export const useStore = create<State>()(
         get().toast({ title: "Prescription issued", description: `${input.items.length} medication(s).`, variant: "success" });
       },
 
+      // ───────────────────── billing ─────────────────────
       createInvoice: (input) => {
         const inv: Invoice = {
           id: "INV-" + nanoid(6).toUpperCase(),
@@ -374,6 +464,7 @@ export const useStore = create<State>()(
         get().toast({ title: `Payment received for ${id}`, variant: "success" });
       },
 
+      // ───────────────────── labs ─────────────────────
       createLab: (input) => {
         const lab: LabRequest = {
           id: "LAB-" + nanoid(4).toUpperCase(),
@@ -392,6 +483,7 @@ export const useStore = create<State>()(
         get().toast({ title: `Lab ${id} → ${status}`, variant: "success" });
       },
 
+      // ───────────────────── wards ─────────────────────
       assignBed: (wardId, roomId, bedId, patientId) => {
         set((s) => ({
           wards: s.wards.map((w) =>
@@ -438,38 +530,40 @@ export const useStore = create<State>()(
         get().toast({ title: "Patient discharged" });
       },
 
-      toggleOnCall: (staffId) => {
+      // ───────────────────── doctors ─────────────────────
+      setDoctorOnCall: (doctorId, onCall) => {
         set((s) => ({
-          staff: s.staff.map((m) => (m.id === staffId ? { ...m, onCall: !m.onCall } : m)),
-          doctors: s.doctors.map((d) =>
-            d.id === staffId ? { ...d, onCall: !d.onCall } : d
-          ),
+          doctors: s.doctors.map((d) => (d.id === doctorId ? { ...d, onCall } : d)),
         }));
+      },
+
+      // ─────────────── patient profile ───────────────
+      updatePatientProfile: (patientId, patch) => {
+        set((s) => ({
+          patients: s.patients.map((p) => (p.id === patientId ? { ...p, ...patch } : p)),
+        }));
+        get().toast({ title: "Profile updated", variant: "success" });
       },
     }),
     {
       name: "carepulse-v1",
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() =>
         typeof window !== "undefined" ? window.localStorage : (undefined as unknown as Storage)
       ),
       migrate: (persisted) => persisted as State,
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Record<string, unknown>;
-        // Legacy (pre-anchor) store: keep only session/theme, re-seed the rest
-        // so relative dates are guaranteed correct.
-        if (typeof p.seededOn !== "string") {
-          return {
-            ...current,
-            session: (p.session as State["session"]) ?? current.session,
-            theme: (p.theme as State["theme"]) ?? current.theme,
-          };
+        // Legacy/demo stores (no real accounts) are discarded entirely except
+        // the theme, so every user starts from a clean, real-accounts slate.
+        if (!Array.isArray(p.accounts)) {
+          return { ...current, theme: (p.theme as State["theme"]) ?? current.theme };
         }
-        const rebased = rebaseSeedDates(p, todayISO());
-        return { ...current, ...(rebased ?? {}) };
+        return { ...current, ...(p as unknown as Partial<State>) };
       },
       partialize: (s) => ({
         seededOn: s.seededOn,
+        accounts: s.accounts,
         doctors: s.doctors,
         patients: s.patients,
         appointments: s.appointments,
@@ -478,13 +572,17 @@ export const useStore = create<State>()(
         invoices: s.invoices,
         labs: s.labs,
         wards: s.wards,
-        staff: s.staff,
         session: s.session,
         theme: s.theme,
       }),
     }
   )
 );
+
+/** toast from outside the store creator without tripping on `set` timing */
+function toastSafe(get: () => State, t: Omit<Toast, "id">) {
+  get().toast(t);
+}
 
 /** selector helpers */
 export const useSession = () => useStore((s) => s.session);

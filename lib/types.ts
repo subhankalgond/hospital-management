@@ -1,5 +1,21 @@
 export type Role = "patient" | "doctor" | "admin";
 
+/** A registered user: credentials + a link to their role profile. */
+export interface Account {
+  id: string;
+  role: Role;
+  name: string;
+  email: string;
+  /** salted SHA-256, hex encoded */
+  passwordHash: string;
+  salt: string;
+  createdAt: string; // ISO date
+  /** for patients */
+  patientId?: string;
+  /** for doctors */
+  doctorId?: string;
+}
+
 export interface User {
   id: string;
   role: Role;
@@ -18,7 +34,7 @@ export interface Patient {
   email: string;
   phone: string;
   dob: string;
-  gender: "male" | "female";
+  gender: "male" | "female" | "other";
   bloodGroup: string;
   address: string;
   emergencyContact: { name: string; phone: string; relation: string };
@@ -31,6 +47,10 @@ export interface Patient {
 export interface Doctor {
   id: string;
   name: string;
+  /** medical qualification, e.g. "MBBS, MD (Cardiology)" */
+  qualification: string;
+  /** medical license / registration number */
+  licenseNo: string;
   specialty: string;
   department: string;
   email: string;
@@ -41,6 +61,38 @@ export interface Doctor {
   onCall: boolean;
   shift: "morning" | "evening" | "night";
 }
+
+export type SignUpInputBase = {
+  name: string;
+  email: string;
+  password: string;
+};
+
+export type SignUpPatientInput = SignUpInputBase & {
+  role: "patient";
+  phone: string;
+  dob: string;
+  gender: Patient["gender"];
+};
+
+export type SignUpDoctorInput = SignUpInputBase & {
+  role: "doctor";
+  phone: string;
+  qualification: string;
+  licenseNo: string;
+  specialty: string;
+  department: string;
+  experienceYears: number;
+  shift: Doctor["shift"];
+  room?: string;
+};
+
+export type SignUpAdminInput = SignUpInputBase & {
+  role: "admin";
+  accessCode: string;
+};
+
+export type SignUpInput = SignUpPatientInput | SignUpDoctorInput | SignUpAdminInput;
 
 export type AppointmentStatus = "scheduled" | "confirmed" | "completed" | "cancelled" | "no-show";
 export type VisitStatus = "waiting" | "in-progress" | "completed";
@@ -124,16 +176,6 @@ export interface Ward {
   name: string;
   floor: number;
   rooms: Room[];
-}
-
-export interface StaffMember {
-  id: string;
-  name: string;
-  role: string;
-  department: string;
-  shift: "morning" | "evening" | "night";
-  onCall: boolean;
-  phone: string;
 }
 
 export interface Toast {
