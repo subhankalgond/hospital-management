@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Role, SignUpInput } from "@/lib/types";
-import { DEPARTMENT_NAMES, DEPARTMENTS, SHIFTS, ADMIN_ACCESS_CODE } from "@/lib/defaults";
+import { DEPARTMENT_NAMES, DEPARTMENTS, SHIFTS } from "@/lib/defaults";
 import { Button, Input, Label, Card } from "@/components/ui/primitives";
 import {
   Select,
@@ -69,29 +69,25 @@ type Step = "category" | "form";
 
 export default function LoginPage() {
   const session = useStore((s) => s.session);
+  const bootState = useStore((s) => s.bootState);
   const router = useRouter();
   const [mode, setMode] = React.useState<Mode>("signin");
-  const [booted, setBooted] = React.useState(false);
   const [nextPath, setNextPath] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const n = new URLSearchParams(window.location.search).get("next");
     if (n && n.startsWith("/") && !n.startsWith("//")) setNextPath(n);
-    if (!useStore.persist.hasHydrated()) {
-      const unsub = useStore.persist.onFinishHydration(() => setBooted(true));
-      return () => unsub();
-    }
-    setBooted(true);
+    useStore.getState().boot();
   }, []);
 
   const destinationFor = (role: Role) =>
     nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : ROLE_HOME[role];
 
   React.useEffect(() => {
-    if (booted && session) {
+    if (bootState === "ready" && session) {
       router.replace(destinationFor(session.role));
     }
-  }, [booted, session, router, nextPath]);
+  }, [bootState, session, router, nextPath]);
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">
@@ -645,8 +641,8 @@ function RoleSignUpForm({
             />
             <p className="rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
               <ShieldCheck className="mr-1 inline size-3.5" />
-              Local demo environment — the access code is{" "}
-              <code className="font-mono font-semibold text-foreground">{ADMIN_ACCESS_CODE}</code>
+              Administrator sign-up is protected by an access code. Ask your
+              hospital administrator for it.
             </p>
           </div>
         )}

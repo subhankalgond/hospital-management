@@ -6,23 +6,22 @@ import { useStore } from "@/lib/store";
 
 export default function IndexRedirect() {
   const router = useRouter();
+  const bootState = useStore((s) => s.bootState);
 
   React.useEffect(() => {
-    if (!useStore.persist.hasHydrated()) {
-      const unsub = useStore.persist.onFinishHydration(() => go());
-      return () => unsub();
-    }
-    go();
+    useStore.getState().boot();
+  }, []);
 
-    function go() {
-      const s = useStore.getState().session;
-      if (!s) {
-        router.replace("/login");
-        return;
-      }
-      router.replace(`/${s.role}`);
+  React.useEffect(() => {
+    if (bootState === "signed-out") {
+      router.replace("/login");
+      return;
     }
-  }, [router]);
+    if (bootState === "ready") {
+      const s = useStore.getState().session;
+      router.replace(s ? `/${s.role}` : "/login");
+    }
+  }, [bootState, router]);
 
   return (
     <div className="flex min-h-dvh items-center justify-center">

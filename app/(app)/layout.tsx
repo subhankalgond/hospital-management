@@ -58,19 +58,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 function AppShell({ children }: { children: React.ReactNode }) {
   const session = useStore((s) => s.session);
+  const bootState = useStore((s) => s.bootState);
+  const bootError = useStore((s) => s.bootError);
   const logout = useStore((s) => s.logout);
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const pathname = usePathname();
 
-  // Track persist hydration with local state: hasHydrated() alone never
-  // triggers a re-render, so the splash could hang when the persisted state
-  // matches the initial state. Starting at `false` also keeps the first
-  // client render identical to the SSR output (no hydration mismatch).
-  const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => {
-    if (useStore.persist.hasHydrated()) setHydrated(true);
-    return useStore.persist.onFinishHydration(() => setHydrated(true));
+    useStore.getState().boot();
   }, []);
 
   // Guard both auth and role/path mismatch; preserve the deep link across
@@ -82,19 +78,36 @@ function AppShell({ children }: { children: React.ReactNode }) {
   }, [role, pathname]);
 
   React.useEffect(() => {
-    if (!hydrated) return;
+    if (bootState !== "ready" && bootState !== "error") return;
     if (!session) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
     } else if (!pathAllowed) {
       router.replace(`/${session.role}`);
     }
-  }, [hydrated, session, pathAllowed, pathname, router]);
+  }, [bootState, session, pathAllowed, pathname, router]);
 
   React.useEffect(() => {
     setDrawerOpen(false);
   }, [pathname]);
 
-  if (!hydrated || !session || !pathAllowed) {
+  if (bootState === "error") {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-background px-4">
+        <div className="flex w-full max-w-sm flex-col items-center gap-4 text-center">
+          <HeartPulseMark className="size-10 text-primary" />
+          <div className="space-y-1">
+            <p className="font-semibold">Can&apos;t reach CarePulse</p>
+            <p className="text-sm text-muted-foreground">{bootError}</p>
+          </div>
+          <Button variant="outline" onClick={() => { useStore.setState({ bootState: "idle" }); useStore.getState().boot(); }}>
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (bootState !== "ready" || !session || !pathAllowed) {
     // Splash also covers the role-mismatch case: children must never render
     // for a session whose role can't access this path (e.g. a doctor deep
     // link opened by an admin) — the effect above is redirecting right now.
@@ -185,6 +198,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
+        {session.role === "admin" && <LegacyImportBanner />}
+
         <main className={cn("px-4 py-6 sm:px-6 lg:px-10", isPatient && "pb-24 lg:pb-6")}>
           <div className="mx-auto w-full max-w-6xl animate-fade-up">{children}</div>
         </main>
@@ -267,6 +282,59 @@ function BottomNav({ pathname }: { pathname: string }) {
     </nav>
   );
 }
+
+function LegacyImportBanner() {
+  const snapshot = useStore((s) => s.legacySnapshot);
+  const importedOn = useStore((s) => s.legacyImportedOn);
+  const importLegacy = useStore((s) => s.importLegacySnapshot);
+  const dismissLegacy = useStore((s) => s.dismissLegacySnapshot);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  if (!snapshot) return null;
+
+  const n = (key: string) => (Array.isArray((snapshot as Record<string, unknown>)[key]) ? ((snapshot as Record<string, unknown>)[key] as unknown[]).length : 0);
+
+  return (
+    <div className="border-b bg-warning/10 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">Found saved data on this device</p>
+          <p className="text-xs text-muted-foreground">
+            {err ?? (
+              <>
+                {n("accounts")} account(s), {n("doctors")} doctor(s), {n("patients")} patient(s),{" "}
+                {n("appointments")} appointment(s) and more, created before the shared database existed.
+                {importedOn ? " (You imported data here before.)" : ""} Import them into the shared database
+                so every device can see them?
+              </>
+            )}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            size="sm"
+            variant="gradient"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setErr(null);
+              const res = await importLegacy();
+              if (!res.ok) {
+                setErr(res.error ?? "Import failed.");
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Importing…" : "Import"}
+          </Button>
+          <Button size="sm" variant="ghost" disabled={busy} onClick={dismissLegacy}>
+            Discard
+          </Button>
+        </div>
+      </div>
+    </div>
+  );}
 
 function OnCallPill({ role }: { role: Role }) {
   const doctors = useStore((s) => s.doctors);

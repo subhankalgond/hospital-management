@@ -13,30 +13,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body>
         <Providers />
-        <SplashOverlay />
         {children}
       </body>
     </html>
-  );
-}
-
-function SplashOverlay() {
-  return (
-    <script
-      dangerouslySetInnerHTML={{
-        __html: `
-(function(){
-  try {
-    var raw = localStorage.getItem("carepulse-v1");
-    var hasSession = false;
-    if (raw) { hasSession = !!JSON.parse(raw).state.session; }
-    if (hasSession) {
-      document.documentElement.setAttribute("data-cp-boot", "1");
-    }
-  } catch (e) {}
-})();
-`,
-      }}
-    />
   );
 }

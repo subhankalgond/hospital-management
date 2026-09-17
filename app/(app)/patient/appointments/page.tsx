@@ -69,16 +69,16 @@ export default function PatientAppointments() {
 
   React.useEffect(() => setSlot(null), [doctorId, date]);
 
-  function submit() {
+  async function submit() {
     if (!canBook) return;
-    const ok = book({
+    const created = await book({
       patientId: session.patientId!,
       doctorId,
       date,
       time: slot!,
       reason: reason.trim(),
     });
-    if (ok) {
+    if (created) {
       setOpen(false);
       setDoctorId("");
       setReason("");

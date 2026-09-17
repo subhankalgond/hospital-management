@@ -7,20 +7,16 @@ import { Toaster } from "@/components/ui/toaster";
 export function Providers({ children }: { children?: React.ReactNode }) {
   const theme = useStore((s) => s.theme);
 
-  // sync theme class onto <html> once the persisted store has hydrated
+  // Apply the theme class as soon as the store mounts; the theme preference
+  // lives in localStorage (the only client-persisted setting).
   React.useEffect(() => {
-    const unsub = useStore.persist.onFinishHydration(() => {
-      document.documentElement.classList.toggle("dark", useStore.getState().theme === "dark");
-      document.documentElement.setAttribute("data-cp-boot", "1");
-    });
-    if (useStore.persist.hasHydrated()) {
-      document.documentElement.classList.toggle("dark", theme === "dark");
-      document.documentElement.setAttribute("data-cp-boot", "1");
-    }
-    return () => {
-      unsub();
-    };
+    document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
+
+  // Kick off the server boot (session + data snapshot) once.
+  React.useEffect(() => {
+    useStore.getState().boot();
+  }, []);
 
   return (
     <>

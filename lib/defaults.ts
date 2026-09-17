@@ -20,17 +20,14 @@ export function departmentFee(department: string) {
   return DEPARTMENTS.find((d) => d.name === department)?.fee ?? 150;
 }
 
-export const SHIFTS: DoctorShift[] = ["morning", "evening", "night"];
-type DoctorShift = "morning" | "evening" | "night";
+export const SHIFTS = ["morning", "evening", "night"] as const;
+export type Shift = (typeof SHIFTS)[number];
 
 export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-/** Admin signup is protected by an access code (client-side demo environment). */
-export const ADMIN_ACCESS_CODE = "CAREPULSE-ADMIN-2026";
-
 /**
- * Hospital infrastructure (kept across resets): ward structure with empty
- * beds, ready for real admissions from registered patients.
+ * Hospital infrastructure (created on first server boot): ward structure with
+ * empty beds, ready for real admissions from registered patients.
  */
 export function initialWards(): Ward[] {
   return [
