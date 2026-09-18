@@ -8,6 +8,7 @@ import type {
   Doctor,
   Invoice,
   LabRequest,
+  Leave,
   Patient,
   Prescription,
   Role,
@@ -62,6 +63,13 @@ interface NewLabInput {
   test: string;
 }
 
+interface NewLeaveInput {
+  doctorId: string;
+  fromDate: string;
+  toDate: string;
+  reason: string;
+}
+
 /** resolved account + profile of whoever is signed in */
 export interface SessionUser {
   id: string;
@@ -91,6 +99,7 @@ interface State {
   invoices: Invoice[];
   labs: LabRequest[];
   wards: Ward[];
+  leaves: Leave[];
   session: SessionUser | null;
   theme: "light" | "dark";
   toasts: Toast[];
@@ -140,6 +149,14 @@ interface State {
   // doctors
   setDoctorOnCall: (doctorId: string, onCall: boolean) => Promise<void>;
 
+  // leaves
+  requestLeave: (input: NewLeaveInput) => Promise<{ ok: boolean; error?: string }>;
+  cancelLeave: (id: string) => Promise<void>;
+  /** true when `date` falls inside one of the doctor's approved leaves */
+  isDoctorOnLeave: (doctorId: string, date: string) => boolean;
+  /** earliest bookable slot chip, e.g. "Mon 09:30" — null when none within 14 days */
+  nextFreeSlot: (doctorId: string) => { date: string; time: string } | null;
+
   // patient profile
   updatePatientProfile: (
     patientId: string,
@@ -167,6 +184,8 @@ const API = {
   labs: "/api/labs",
   lab: (id: string) => `/api/labs/${id}`,
   beds: "/api/beds",
+  leaves: "/api/leaves",
+  leave: (id: string) => `/api/leaves/${id}`,
   doctor: (id: string) => `/api/doctors/${id}`,
   patient: (id: string) => `/api/patients/${id}`,
   import: "/api/import",
@@ -200,6 +219,16 @@ async function apiPatch(url: string, body: unknown): Promise<{ ok: boolean; stat
   }
 }
 
+async function apiDelete(url: string): Promise<{ ok: boolean; status: number; data: any }> {
+  try {
+    const res = await fetch(url, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  } catch {
+    return { ok: false, status: 0, data: { error: "Cannot reach the server. Check your connection." } };
+  }
+}
+
 /** One shared doctor-booking grid (matches the previous client behavior). */
 const SLOT_TIMES = [
   "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
@@ -209,6 +238,15 @@ const SLOT_TIMES = [
 
 const LEGACY_KEY = "carepulse-v1";
 const IMPORT_FLAG = "carepulse-legacy-imported";
+
+/**
+ * Timestamp of the last sign-out. boot() refuses to "resurrect" a session for
+ * a few seconds after sign-out — otherwise the login page's state fetch can
+ * race the in-flight sign-out POST on a slow connection and bounce the user
+ * straight back into the app (the classic stuck-on-logout bug).
+ */
+let signedOutAt = 0;
+const SESSION_SUPPRESS_MS = 10_000;
 
 /** Read the pre-server localStorage snapshot once, then keep it for import. */
 function readLegacySnapshot(): Record<string, unknown> | null {
@@ -243,6 +281,7 @@ function applySnapshot(s: State, data: Record<string, unknown>): Partial<State> 
     invoices: (data.invoices ?? []) as State["invoices"],
     labs: (data.labs ?? []) as State["labs"],
     wards: (data.wards ?? []) as State["wards"],
+    leaves: (data.leaves ?? []) as State["leaves"],
     session: data.session as SessionUser | null,
   };
 }
@@ -277,6 +316,7 @@ export const useStore = create<State>()((set, get) => ({
   invoices: [],
   labs: [],
   wards: [],
+  leaves: [],
   session: null,
   theme: typeof window !== "undefined" && window.localStorage.getItem("carepulse-theme") === "dark" ? "dark" : "light",
   toasts: [],
@@ -308,6 +348,12 @@ export const useStore = create<State>()((set, get) => ({
       set({ bootState: "error", bootError: "Server returned an unreadable response." });
       return;
     }
+    // Just signed out? Ignore any session the server still reports — the
+    // sign-out request is in flight; acting on it would trap the user in the app.
+    if (Date.now() - signedOutAt < SESSION_SUPPRESS_MS) {
+      set({ bootState: "signed-out", bootError: null, legacySnapshot: legacy, legacyImportedOn: importedOn, session: null });
+      return;
+    }
     const patch = applySnapshot(get(), data);
     set({ bootState: "ready", bootError: null, legacySnapshot: legacy, legacyImportedOn: importedOn, ...patch });
   },
@@ -329,6 +375,7 @@ export const useStore = create<State>()((set, get) => ({
     const data = (await me.json().catch(() => null)) as Record<string, unknown> | null;
     if (!data) return { ok: false, error: "Account created but session could not start." };
 
+    signedOutAt = 0; // fresh session — boot() must not suppress it
     set({ bootState: "ready", ...applySnapshot(get(), data) });
     const name = (data.session as SessionUser | null)?.name ?? "there";
     get().toast({
@@ -353,6 +400,7 @@ export const useStore = create<State>()((set, get) => ({
     const data = (await me.json().catch(() => null)) as Record<string, unknown> | null;
     if (!data) return { ok: false, error: "Signed in but data could not load." };
 
+    signedOutAt = 0; // fresh session — boot() must not suppress it
     set({ bootState: "ready", ...applySnapshot(get(), data) });
     const name = (data.session as SessionUser | null)?.name ?? "there";
     get().toast({ title: `Welcome back, ${name.split(" ")[0]} 👋`, variant: "success" });
@@ -360,7 +408,10 @@ export const useStore = create<State>()((set, get) => ({
   },
 
   logout: async () => {
-    await apiPost(API.signOut);
+    // Clear everything FIRST so the login page never sees a stale session
+    // (that race is what froze phones on the splash). The server call then
+    // happens in the background — the cookie is invalidated whenever it lands.
+    signedOutAt = Date.now();
     set({
       bootState: "signed-out",
       session: null,
@@ -373,7 +424,9 @@ export const useStore = create<State>()((set, get) => ({
       invoices: [],
       labs: [],
       wards: [],
+      leaves: [],
     });
+    void apiPost(API.signOut);
   },
 
   toggleTheme: () =>
@@ -481,22 +534,50 @@ export const useStore = create<State>()((set, get) => ({
 
   // ───────────────── slots ─────────────────
   slotsFor: (doctorId, date) => {
-    const { appointments } = get();
+    const { appointments, leaves, isDoctorOnLeave } = get();
     const taken = new Set(
       appointments
         .filter((a) => a.doctorId === doctorId && a.date === date && a.status !== "cancelled")
         .map((a) => a.time)
     );
+    const onLeave = isDoctorOnLeave(doctorId, date);
     const isToday = date === todayISO();
     const now = new Date();
     return SLOT_TIMES.map((time) => {
-      let available = !taken.has(time);
+      let available = !taken.has(time) && !onLeave;
       if (isToday && available) {
         const [h, m] = time.split(":").map(Number);
         available = h * 60 + m > now.getHours() * 60 + now.getMinutes() + 30;
       }
       return { time, available };
     });
+  },
+
+  isDoctorOnLeave: (doctorId, date) => {
+    const today = todayISO();
+    return get().leaves.some(
+      (l) =>
+        l.doctorId === doctorId &&
+        l.status === "approved" &&
+        l.fromDate <= date &&
+        date <= l.toDate &&
+        l.toDate >= today
+    );
+  },
+
+  nextFreeSlot: (doctorId) => {
+    const { slotsFor } = get();
+    const start = new Date();
+    for (let i = 0; i < 14; i++) {
+      start.setDate(start.getDate() + (i === 0 ? 0 : 1));
+      const date =
+        start.getFullYear() + "-" +
+        String(start.getMonth() + 1).padStart(2, "0") + "-" +
+        String(start.getDate()).padStart(2, "0");
+      const free = slotsFor(doctorId, date).find((s) => s.available);
+      if (free) return { date, time: free.time };
+    }
+    return null;
   },
 
   // ───────────────── visits & prescriptions ─────────────────
@@ -604,6 +685,29 @@ export const useStore = create<State>()((set, get) => ({
     }
     await get().refresh();
     get().toast({ title: "Profile updated", variant: "success" });
+  },
+
+  // ───────────────── leaves ─────────────────
+  requestLeave: async (input) => {
+    const res = await apiPost(API.leaves, input);
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not request leave." };
+    await get().refresh();
+    get().toast({
+      title: "Leave requested",
+      description: `Approved automatically — booked patients are notified on their next visit.`,
+      variant: "success",
+    });
+    return { ok: true };
+  },
+
+  cancelLeave: async (id) => {
+    const res = await apiDelete(API.leave(id));
+    if (!res.ok) {
+      get().toast({ title: "Could not cancel leave", description: res.data?.error, variant: "destructive" });
+      return;
+    }
+    await get().refresh();
+    get().toast({ title: "Leave cancelled — slots are open again", variant: "success" });
   },
 
   // ───────────────── legacy import ─────────────────

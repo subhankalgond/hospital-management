@@ -161,3 +161,22 @@ export type VisitRow = typeof visits.$inferSelect;
 export type InvoiceRow = typeof invoices.$inferSelect;
 export type LabRow = typeof labs.$inferSelect;
 export type WardRow = typeof wards.$inferSelect;
+
+/** Doctor leave days — booking is rejected for any date within a leave. */
+export const leaves = pgTable(
+  "leaves",
+  {
+    id: text("id").primaryKey(),
+    doctorId: text("doctor_id").notNull(),
+    fromDate: text("from_date").notNull(), // ISO yyyy-mm-dd (inclusive)
+    toDate: text("to_date").notNull(), // ISO yyyy-mm-dd (inclusive)
+    reason: text("reason").notNull().default(""),
+    status: text("status").notNull().default("approved"), // approved | pending | denied
+    requestedOn: text("requested_on").notNull(),
+  },
+  (t) => ({
+    doctorIdx: index("leaves_doctor_idx").on(t.doctorId, t.fromDate),
+  })
+);
+
+export type LeaveRow = typeof leaves.$inferSelect;

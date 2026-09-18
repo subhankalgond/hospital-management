@@ -120,3 +120,15 @@ CREATE TABLE IF NOT EXISTS "wards" (
   "floor" integer NOT NULL,
   "rooms" jsonb DEFAULT '[]'::jsonb NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS "leaves" (
+  "id" text PRIMARY KEY NOT NULL,
+  "doctor_id" text NOT NULL,
+  "from_date" text NOT NULL,
+  "to_date" text NOT NULL,
+  "reason" text DEFAULT '' NOT NULL,
+  "status" text DEFAULT 'approved' NOT NULL,
+  "requested_on" text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS "leaves_doctor_idx" ON "leaves" ("doctor_id", "from_date");

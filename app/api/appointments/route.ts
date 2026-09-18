@@ -1,6 +1,6 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, lte, gte } from "drizzle-orm";
 import { getDb } from "@/db";
-import { appointments, doctors, invoices } from "@/db/schema";
+import { appointments, doctors, invoices, leaves } from "@/db/schema";
 import { json, apiError, readJson, newId, requireAccount } from "@/lib/server/api";
 import { departmentFee } from "@/lib/defaults";
 import { todayISO, addDays } from "@/lib/utils";
@@ -39,6 +39,29 @@ export async function POST(req: Request) {
   const docRows = await db.select().from(doctors).where(eq(doctors.id, doctorId)).limit(1);
   const doctor = docRows[0];
   if (!doctor) return apiError("Doctor not found.", 404);
+
+  // ── Leave guard: no booking may land on one of the doctor's approved leaves. ──
+  const onLeave = await db
+    .select({ id: leaves.id })
+    .from(leaves)
+    .where(
+      and(
+        eq(leaves.doctorId, doctorId),
+        eq(leaves.status, "approved"),
+        lte(leaves.fromDate, date),
+        gte(leaves.toDate, date)
+      )
+    )
+    .limit(1);
+  if (onLeave.length > 0) {
+    const lv = (
+      await db.select().from(leaves).where(eq(leaves.id, onLeave[0].id)).limit(1)
+    )[0];
+    return apiError(
+      `${doctor.name} is on leave ${lv?.fromDate ?? date} to ${lv?.toDate ?? date}. Please pick another date.`,
+      409
+    );
+  }
 
   // ── Slot conflict check + insert. PGlite is single-connection so the
   // check-then-insert is effectively atomic in dev; on Supabase the unique

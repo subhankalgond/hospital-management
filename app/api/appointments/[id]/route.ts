@@ -1,6 +1,6 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, lte, gte } from "drizzle-orm";
 import { getDb } from "@/db";
-import { appointments } from "@/db/schema";
+import { appointments, leaves, doctors } from "@/db/schema";
 import { json, apiError, readJson, requireAccount } from "@/lib/server/api";
 
 type Action = "reschedule" | "cancel" | "confirm" | "no-show" | "queue";
@@ -51,6 +51,27 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       )
       .limit(1);
     if (conflict.length > 0) return apiError("That slot is already booked.", 409);
+
+    // Leave guard: rescheduling onto a leave day is blocked too.
+    const docRow = (await db.select().from(doctors).where(eq(doctors.id, appt.doctorId)).limit(1))[0];
+    const lv = await db
+      .select()
+      .from(leaves)
+      .where(
+        and(
+          eq(leaves.doctorId, appt.doctorId),
+          eq(leaves.status, "approved"),
+          lte(leaves.fromDate, date),
+          gte(leaves.toDate, date)
+        )
+      )
+      .limit(1);
+    if (lv.length > 0) {
+      return apiError(
+        `${docRow?.name ?? "This doctor"} is on leave ${lv[0].fromDate} to ${lv[0].toDate}. Please pick another date.`,
+        409
+      );
+    }
     patch.date = date;
     patch.time = time;
   } else if (action === "cancel") {

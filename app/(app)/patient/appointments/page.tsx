@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CalendarPlus, Clock, MapPin, Search, Stethoscope, GraduationCap } from "lucide-react";
+import { CalendarPlus, CalendarOff, Clock, MapPin, Search, Stethoscope, GraduationCap, ArrowRight } from "lucide-react";
 import { useStore, type Slot } from "@/lib/store";
 import type { Appointment, Doctor } from "@/lib/types";
 import {
@@ -35,6 +35,8 @@ export default function PatientAppointments() {
   const book = useStore((s) => s.bookAppointment);
   const cancel = useStore((s) => s.cancelAppointment);
   const slotsFor = useStore((s) => s.slotsFor);
+  const isDoctorOnLeave = useStore((s) => s.isDoctorOnLeave);
+  const nextFreeSlot = useStore((s) => s.nextFreeSlot);
 
   const today = new Date().toISOString().slice(0, 10);
   const mine = appointments.filter((a) => a.patientId === session.patientId);
@@ -66,6 +68,22 @@ export default function PatientAppointments() {
 
   const slots = doctorId && date ? slotsFor(doctorId, date) : [];
   const canBook = doctorId && reason.trim() && slot;
+
+  // ── Care Continuity Switch ──
+  // When the chosen doctor is on leave for the picked date, offer the nearest
+  // available colleagues in the same department with their earliest free slot.
+  const selectedDoctor = doctors.find((d) => d.id === doctorId);
+  const selectedOnLeave = Boolean(doctorId && date && isDoctorOnLeave(doctorId, date));
+  const alternatives = React.useMemo(() => {
+    if (!selectedOnLeave || !selectedDoctor || !date) return [];
+    return doctors
+      .filter((d) => d.id !== doctorId && d.department === selectedDoctor.department)
+      .filter((d) => !isDoctorOnLeave(d.id, date))
+      .map((d) => ({ doctor: d, free: nextFreeSlot(d.id) }))
+      .filter((x): x is { doctor: (typeof doctors)[number]; free: { date: string; time: string } } => x.free !== null)
+      .sort((a, b) => (a.free.date + a.free.time).localeCompare(b.free.date + b.free.time))
+      .slice(0, 3);
+  }, [selectedOnLeave, selectedDoctor, date, doctorId, doctors, isDoctorOnLeave, nextFreeSlot]);
 
   React.useEffect(() => setSlot(null), [doctorId, date]);
 
@@ -174,6 +192,15 @@ export default function PatientAppointments() {
                               {d.specialty} · {d.department} · {d.experienceYears}y
                             </span>
                           </span>
+                          {!isDoctorOnLeave(d.id, date) &&
+                            (() => {
+                              const nf = nextFreeSlot(d.id);
+                              return nf ? (
+                                <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground">
+                                  Next free: {dayLabel(nf.date).replace(",", "")} {nf.time}
+                                </span>
+                              ) : null;
+                            })()}
                         </button>
                       ))}
                     </div>
@@ -194,6 +221,47 @@ export default function PatientAppointments() {
                       onChange={(e) => setDate(e.target.value)}
                     />
                   </div>
+
+                  {selectedOnLeave && selectedDoctor && (
+                    <div className="rounded-xl border border-warning/40 bg-warning/10 p-3">
+                      <p className="flex items-center gap-2 text-sm font-medium text-warning">
+                        <CalendarOff className="size-4 shrink-0" />
+                        {selectedDoctor.name} is on leave on {dateLabel(date)}.
+                      </p>
+                      {alternatives.length > 0 && (
+                        <div className="mt-2 space-y-1.5">
+                          <p className="text-xs text-muted-foreground">
+                            Care continuity — nearest available in {selectedDoctor.department}:
+                          </p>
+                          {alternatives.map(({ doctor, free }) => (
+                            <button
+                              key={doctor.id}
+                              type="button"
+                              onClick={() => {
+                                setDoctorId(doctor.id);
+                                setDate(free.date);
+                                setSlot(free.time);
+                              }}
+                              className="flex w-full items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2 text-left text-sm transition-all hover:border-primary hover:bg-accent/50"
+                            >
+                              <span className="min-w-0">
+                                <span className="block truncate font-medium">{doctor.name}</span>
+                                <span className="block truncate text-xs text-muted-foreground">
+                                  {doctor.specialty} · free {dayLabel(free.date)} at {free.time}
+                                </span>
+                              </span>
+                              <ArrowRight className="size-4 shrink-0 text-primary" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {alternatives.length === 0 && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          No other {selectedDoctor.department} doctor is available within 14 days — try another date or department.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="space-y-1.5">
                     <Label>Available slots</Label>
@@ -220,6 +288,11 @@ export default function PatientAppointments() {
                     ) : (
                       <p className="rounded-lg bg-muted/60 px-3 py-4 text-center text-sm text-muted-foreground">
                         Select a doctor to see open slots
+                      </p>
+                    )}
+                    {doctorId && selectedOnLeave && (
+                      <p className="rounded-lg bg-warning/10 px-3 py-2 text-center text-xs font-medium text-warning">
+                        All slots blocked — this doctor is on leave on {dateLabel(date)}.
                       </p>
                     )}
                   </div>

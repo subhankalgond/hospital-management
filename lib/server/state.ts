@@ -11,6 +11,7 @@ import {
   invoices as invoicesT,
   labs as labsT,
   wards as wardsT,
+  leaves as leavesT,
   type AccountRow,
   type PatientRow,
   type DoctorRow,
@@ -20,6 +21,7 @@ import {
   type InvoiceRow,
   type LabRow,
   type WardRow,
+  type LeaveRow,
 } from "@/db/schema";
 import type { SessionAccount } from "./auth";
 
@@ -34,6 +36,7 @@ export interface DataState {
   invoices: InvoiceRow[];
   labs: LabRow[];
   wards: WardRow[];
+  leaves: LeaveRow[];
   session: {
     id: string;
     role: string;
@@ -54,7 +57,7 @@ export interface DataState {
 export async function buildState(account: SessionAccount): Promise<DataState> {
   const db = await getDb();
 
-  const [doctorRows, patientRows, appointmentRows, prescriptionRows, visitRows, invoiceRows, labRows, wardRows] =
+  const [doctorRows, patientRows, appointmentRows, prescriptionRows, visitRows, invoiceRows, labRows, wardRows, leaveRows] =
     await Promise.all([
       db.select().from(doctorsT).orderBy(desc(doctorsT.createdAt)),
       db.select().from(patientsT).orderBy(desc(patientsT.createdAt)),
@@ -64,6 +67,7 @@ export async function buildState(account: SessionAccount): Promise<DataState> {
       db.select().from(invoicesT).orderBy(desc(invoicesT.date)),
       db.select().from(labsT).orderBy(desc(labsT.requestedOn)),
       db.select().from(wardsT),
+      db.select().from(leavesT).orderBy(desc(leavesT.fromDate)),
     ]);
 
   // Ward structure is fixed infrastructure; seed it on first ever load.
@@ -105,6 +109,7 @@ export async function buildState(account: SessionAccount): Promise<DataState> {
       invoices: invoiceRows,
       labs: labRows,
       wards: wardsOut,
+      leaves: leaveRows,
       session,
       meta: { serverTime: new Date().toISOString() },
     };
@@ -125,6 +130,7 @@ export async function buildState(account: SessionAccount): Promise<DataState> {
     invoices: mine(invoiceRows),
     labs: mine(labRows),
     wards: [],
+    leaves: leaveRows,
     session,
     meta: { serverTime: new Date().toISOString() },
   };

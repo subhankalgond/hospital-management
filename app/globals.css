@@ -114,3 +114,18 @@
     backdrop-filter: blur(12px);
   }
 }
+
+/* Mobile performance: heavy backdrop blur and infinite pulse/ping animations
+   are the main sources of jank on low-end phones (theme toggle and navigation
+   felt stuck). They are purely decorative — drop them on small screens. */
+@media (max-width: 640px) {
+  .glass {
+    backdrop-filter: none;
+    background: hsl(var(--card) / 0.94);
+  }
+  .animate-pulse-soft,
+  .animate-ping,
+  .animate-ping * {
+    animation: none;
+  }
+}

@@ -184,3 +184,16 @@ export interface Toast {
   description?: string;
   variant?: "default" | "success" | "destructive";
 }
+
+/** Doctor leave — blocks bookings on the covered days. */
+export type LeaveStatus = "approved" | "pending" | "denied";
+
+export interface Leave {
+  id: string;
+  doctorId: string;
+  fromDate: string; // ISO yyyy-mm-dd (inclusive)
+  toDate: string; // ISO yyyy-mm-dd (inclusive)
+  reason: string;
+  status: LeaveStatus;
+  requestedOn: string; // ISO date the leave was requested
+}

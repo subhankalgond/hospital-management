@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Phone, Star, ToggleLeft, ToggleRight, Users, GraduationCap, BadgeCheck } from "lucide-react";
+import { Phone, Star, ToggleLeft, ToggleRight, Users, GraduationCap, BadgeCheck, CalendarOff } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Avatar, Badge, Card, CardHeader, CardTitle, EmptyState } from "@/components/ui/primitives";
 import { PageHeader } from "@/components/ui/misc";
@@ -15,6 +15,8 @@ export default function AdminStaff() {
   const accounts = useStore((s) => s.accounts);
   const setDoctorOnCall = useStore((s) => s.setDoctorOnCall);
   const appointments = useStore((s) => s.appointments);
+  const leaves = useStore((s) => s.leaves);
+  const today = new Date().toISOString().slice(0, 10);
 
   const patients = accounts.filter((a) => a.role === "patient");
   const doctorAccounts = accounts.filter((a) => a.role === "doctor");
@@ -67,6 +69,18 @@ export default function AdminStaff() {
                 <Badge variant={shiftBadge[d.shift]}>Shift: {d.shift}</Badge>
                 {d.room !== "—" && <Badge variant="outline">Room {d.room}</Badge>}
                 {d.onCall && <Badge variant="success">On call</Badge>}
+                {(() => {
+                  const lv = leaves.find(
+                    (l) => l.doctorId === d.id && l.status === "approved" && l.toDate >= today
+                  );
+                  if (!lv) return null;
+                  const active = lv.fromDate <= today;
+                  return (
+                    <Badge variant="warning">
+                      <CalendarOff /> {active ? "On leave" : `Leave ${lv.fromDate}→${lv.toDate}`}
+                    </Badge>
+                  );
+                })()}
               </div>
               <div className="mt-3 flex items-center justify-between border-t pt-3 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1"><Phone className="size-3.5" /> {d.phone}</span>

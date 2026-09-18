@@ -77,6 +77,8 @@ export default function LoginPage() {
   React.useEffect(() => {
     const n = new URLSearchParams(window.location.search).get("next");
     if (n && n.startsWith("/") && !n.startsWith("//")) setNextPath(n);
+    // Providers already boots once for the whole app; boot() is idempotent and
+    // skips when a boot is in flight or ready, so this is only a safety net.
     useStore.getState().boot();
   }, []);
 

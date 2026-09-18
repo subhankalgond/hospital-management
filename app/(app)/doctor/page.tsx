@@ -14,6 +14,7 @@ export default function DoctorQueue() {
   const doctors = useStore((s) => s.doctors);
   const patients = useStore((s) => s.patients);
   const appointments = useStore((s) => s.appointments);
+  const leaves = useStore((s) => s.leaves);
   const setQueueStatus = useStore((s) => s.setQueueStatus);
   const markNoShow = useStore((s) => s.markNoShow);
   const me = doctors.find((d) => d.id === session.doctorId);
@@ -32,6 +33,9 @@ export default function DoctorQueue() {
   }
 
   const today = todayISO();
+  const onLeaveToday = leaves.some(
+    (l) => l.doctorId === me.id && l.status === "approved" && l.fromDate <= today && today <= l.toDate
+  );
   const queue = appointments
     .filter((a) => a.doctorId === me.id && a.date === today && a.status !== "cancelled")
     .sort((a, b) => a.time.localeCompare(b.time));
@@ -48,6 +52,13 @@ export default function DoctorQueue() {
         title={`Today's queue — ${me.name}`}
         description={`${me.specialty} · Room ${me.room} · ${queue.length} appointments`}
       />
+
+      {onLeaveToday && (
+        <div className="mb-4 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
+          <span className="font-medium text-warning">🏖 You are on approved leave today.</span>{" "}
+          <span className="text-muted-foreground">The queue below is unchanged, but patients cannot book new appointments until your leave ends.</span>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Waiting" value={waiting.length} icon={<CircleDot className="size-5" />} tone="warning" sub="Checked in, not seen" />
