@@ -239,6 +239,9 @@ const SLOT_TIMES = [
 const LEGACY_KEY = "carepulse-v1";
 const IMPORT_FLAG = "carepulse-legacy-imported";
 
+/** module-level singletons (survive only within one page session) */
+let inFlightRefresh: Promise<void> | null = null;
+
 /**
  * Timestamp of the last sign-out. boot() refuses to "resurrect" a session for
  * a few seconds after sign-out — otherwise the login page's state fetch can
@@ -359,10 +362,20 @@ export const useStore = create<State>()((set, get) => ({
   },
 
   refresh: async () => {
-    const res = await fetch("/api/state", { cache: "no-store" }).catch(() => null);
-    if (!res || !res.ok) return;
-    const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
-    if (data) set(applySnapshot(get(), data));
+    // De-duplicate concurrent refreshes: several actions firing together must
+    // share one request instead of stacking (faster, fewer DB round-trips).
+    if (inFlightRefresh) return inFlightRefresh;
+    inFlightRefresh = (async () => {
+      try {
+        const res = await fetch("/api/state", { cache: "no-store" }).catch(() => null);
+        if (!res || !res.ok) return;
+        const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+        if (data) set(applySnapshot(get(), data));
+      } finally {
+        inFlightRefresh = null;
+      }
+    })();
+    return inFlightRefresh;
   },
 
   // ───────────────── auth ─────────────────

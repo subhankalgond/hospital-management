@@ -83,7 +83,10 @@ export async function buildState(account: SessionAccount): Promise<DataState> {
 
   let accountsOut: AccountRow[] = [];
   if (account.role === "admin") {
-    accountsOut = await db.select().from(accountsT).orderBy(desc(accountsT.createdAt));
+    // Credentials never leave the server: strip password material before the
+    // rows go into the response (smaller payload, no hash exposure).
+    const rows = await db.select().from(accountsT).orderBy(desc(accountsT.createdAt));
+    accountsOut = rows.map((a: AccountRow) => ({ ...a, passwordHash: "", salt: null }));
   }
 
   const isPatient = account.role === "patient";

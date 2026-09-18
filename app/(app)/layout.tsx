@@ -78,7 +78,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
   }, [role, pathname]);
 
   React.useEffect(() => {
-    if (bootState !== "ready" && bootState !== "error") return;
+    // "signed-out" must redirect too — otherwise a dead/expired session cookie
+    // (e.g. after logout or an expired login) leaves this page stuck on the
+    // splash forever instead of sending the user to the login screen.
+    if (bootState !== "ready" && bootState !== "error" && bootState !== "signed-out") return;
     if (!session) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
     } else if (!pathAllowed) {

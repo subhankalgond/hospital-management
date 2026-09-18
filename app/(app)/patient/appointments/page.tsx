@@ -37,6 +37,7 @@ export default function PatientAppointments() {
   const slotsFor = useStore((s) => s.slotsFor);
   const isDoctorOnLeave = useStore((s) => s.isDoctorOnLeave);
   const nextFreeSlot = useStore((s) => s.nextFreeSlot);
+  const leaves = useStore((s) => s.leaves);
 
   const today = new Date().toISOString().slice(0, 10);
   const mine = appointments.filter((a) => a.patientId === session.patientId);
@@ -66,8 +67,23 @@ export default function PatientAppointments() {
     .filter((d) => (deptFilter === "all" ? true : d.department === deptFilter))
     .filter((d) => `${d.name} ${d.specialty} ${d.department}`.toLowerCase().includes(q.toLowerCase()));
 
-  const slots = doctorId && date ? slotsFor(doctorId, date) : [];
+  const slots = React.useMemo(
+    () => (doctorId && date ? slotsFor(doctorId, date) : []),
+    [doctorId, date, appointments, leaves] // recompute only on data change
+  );
   const canBook = doctorId && reason.trim() && slot;
+
+  // "Next free" chips: expensive (scans 14 days × 18 slots per doctor), so
+  // compute them once per doctors/leaves change, not on every keystroke.
+  const nextFreeByDoctor = React.useMemo(() => {
+    const map = new Map<string, { date: string; time: string }>();
+    for (const d of doctors) {
+      const nf = nextFreeSlot(d.id);
+      if (nf) map.set(d.id, nf);
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doctors, leaves, appointments]);
 
   // ── Care Continuity Switch ──
   // When the chosen doctor is on leave for the picked date, offer the nearest
@@ -79,11 +95,12 @@ export default function PatientAppointments() {
     return doctors
       .filter((d) => d.id !== doctorId && d.department === selectedDoctor.department)
       .filter((d) => !isDoctorOnLeave(d.id, date))
-      .map((d) => ({ doctor: d, free: nextFreeSlot(d.id) }))
-      .filter((x): x is { doctor: (typeof doctors)[number]; free: { date: string; time: string } } => x.free !== null)
+      .map((d) => ({ doctor: d, free: nextFreeByDoctor.get(d.id) }))
+      .filter((x): x is { doctor: (typeof doctors)[number]; free: { date: string; time: string } } => x.free !== undefined)
       .sort((a, b) => (a.free.date + a.free.time).localeCompare(b.free.date + b.free.time))
       .slice(0, 3);
-  }, [selectedOnLeave, selectedDoctor, date, doctorId, doctors, isDoctorOnLeave, nextFreeSlot]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOnLeave, selectedDoctor?.id, date, doctorId, doctors, nextFreeByDoctor]);
 
   React.useEffect(() => setSlot(null), [doctorId, date]);
 
@@ -194,7 +211,7 @@ export default function PatientAppointments() {
                           </span>
                           {!isDoctorOnLeave(d.id, date) &&
                             (() => {
-                              const nf = nextFreeSlot(d.id);
+                              const nf = nextFreeByDoctor.get(d.id);
                               return nf ? (
                                 <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground">
                                   Next free: {dayLabel(nf.date).replace(",", "")} {nf.time}
