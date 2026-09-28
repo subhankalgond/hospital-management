@@ -180,3 +180,85 @@ export const leaves = pgTable(
 );
 
 export type LeaveRow = typeof leaves.$inferSelect;
+
+/* ─────────────── Emergency Center ─────────────── */
+
+export const emergencyCases = pgTable(
+  "emergency_cases",
+  {
+    id: text("id").primaryKey(), // EM-XXXXXX
+    accountId: text("account_id").notNull(), // staff who registered it
+    patientId: text("patient_id"), // existing registered patient, if found
+    walkIn: jsonb("walk_in").notNull().default({}), // { name, age, gender, contactName, contactPhone }
+    symptoms: text("symptoms").notNull().default(""),
+    vitals: jsonb("vitals"), // EmergencyVitals | null
+    notes: text("notes").notNull().default(""),
+    trauma: boolean("trauma").notNull().default(false),
+    priority: text("priority").notNull().default("MODERATE"), // final staff-confirmed
+    triage: jsonb("triage"), // TriageResult | null
+    triageAt: text("triage_at"),
+    confirmedAt: text("confirmed_at"),
+    reviewer: text("reviewer"),
+    reasonForChange: text("reason_for_change"),
+    assignedDoctorId: text("assigned_doctor_id"),
+    department: text("department").notNull().default(""),
+    status: text("status").notNull().default("arrived"),
+    bedId: text("bed_id"),
+    arrivalAt: text("arrival_at").notNull(), // ISO timestamp
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => ({
+    statusIdx: index("emergency_status_idx").on(t.status, t.priority),
+  })
+);
+
+export type EmergencyCaseRow = typeof emergencyCases.$inferSelect;
+
+/* ─────────────── Smart Bed Management ─────────────── */
+
+/** Live bed inventory — one row per physical bed, seeded from wards on boot. */
+export const beds = pgTable(
+  "beds",
+  {
+    id: text("id").primaryKey(), // matches the ward room bed id
+    label: text("label").notNull(),
+    wardId: text("ward_id").notNull(),
+    wardName: text("ward_name").notNull().default(""),
+    floor: integer("floor").notNull().default(0),
+    roomId: text("room_id").notNull(),
+    roomLabel: text("room_label").notNull().default(""),
+    type: text("type").notNull().default("private"), // private | semi-private | icu
+    status: text("status").notNull().default("available"),
+    patientId: text("patient_id"),
+    occupiedSince: text("occupied_since"),
+    reservedFor: text("reserved_for"), // emergency case id
+    reservedAt: text("reserved_at"),
+    lastStatusChange: text("last_status_change").notNull(), // ISO timestamp
+  },
+  (t) => ({
+    wardIdx: index("beds_ward_idx").on(t.wardId, t.status),
+  })
+);
+
+export type BedRow = typeof beds.$inferSelect;
+
+/** Every bed state transition, for the audit trail. */
+export const bedAudit = pgTable(
+  "bed_audit",
+  {
+    id: text("id").primaryKey(),
+    bedId: text("bed_id").notNull(),
+    bedLabel: text("bed_label").notNull().default(""),
+    fromStatus: text("from_status").notNull(),
+    toStatus: text("to_status").notNull(),
+    changedBy: text("changed_by").notNull(),
+    changedByName: text("changed_by_name").notNull().default(""),
+    reason: text("reason"),
+    at: text("at").notNull(), // ISO timestamp
+  },
+  (t) => ({
+    bedIdx: index("bed_audit_bed_idx").on(t.bedId, t.at),
+  })
+);
+
+export type BedAuditRow = typeof bedAudit.$inferSelect;

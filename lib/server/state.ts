@@ -12,6 +12,9 @@ import {
   labs as labsT,
   wards as wardsT,
   leaves as leavesT,
+  emergencyCases as emergencyT,
+  beds as bedsT,
+  bedAudit as bedAuditT,
   type AccountRow,
   type PatientRow,
   type DoctorRow,
@@ -22,6 +25,9 @@ import {
   type LabRow,
   type WardRow,
   type LeaveRow,
+  type EmergencyCaseRow,
+  type BedRow,
+  type BedAuditRow,
 } from "@/db/schema";
 import type { SessionAccount } from "./auth";
 
@@ -37,6 +43,9 @@ export interface DataState {
   labs: LabRow[];
   wards: WardRow[];
   leaves: LeaveRow[];
+  emergencies: EmergencyCaseRow[];
+  beds: BedRow[];
+  bedAudit: BedAuditRow[];
   session: {
     id: string;
     role: string;
@@ -49,6 +58,23 @@ export interface DataState {
 }
 
 /**
+ * Runs promise factories in small concurrent batches. The Supabase pooler
+ * (PgBouncer/Supavisor transaction mode) misbehaves when a single client
+ * floods it with a dozen simultaneous connections — unbounded Promise.all
+ * here caused 90s+ stalls — while batches of 4 stay fast and safe.
+ */
+async function inBatches<T extends readonly (() => unknown)[]>(
+  factories: T,
+  size = 4
+): Promise<{ [K in keyof T]: T[K] extends () => infer R ? R : never }> {
+  const out: unknown[] = [];
+  for (let i = 0; i < factories.length; i += size) {
+    out.push(...(await Promise.all(factories.slice(i, i + size).map((f) => f()))));
+  }
+  return out as { [K in keyof T]: T[K] extends () => infer R ? R : never };
+}
+
+/**
  * Loads every collection, scoped by role:
  * - patient → only their own rows (plus the doctors list for booking)
  * - doctor/admin → the full clinic view
@@ -57,18 +83,33 @@ export interface DataState {
 export async function buildState(account: SessionAccount): Promise<DataState> {
   const db = await getDb();
 
-  const [doctorRows, patientRows, appointmentRows, prescriptionRows, visitRows, invoiceRows, labRows, wardRows, leaveRows] =
-    await Promise.all([
-      db.select().from(doctorsT).orderBy(desc(doctorsT.createdAt)),
-      db.select().from(patientsT).orderBy(desc(patientsT.createdAt)),
-      db.select().from(appointmentsT).orderBy(desc(appointmentsT.createdAt)),
-      db.select().from(prescriptionsT).orderBy(desc(prescriptionsT.date)),
-      db.select().from(visitsT).orderBy(desc(visitsT.date)),
-      db.select().from(invoicesT).orderBy(desc(invoicesT.date)),
-      db.select().from(labsT).orderBy(desc(labsT.requestedOn)),
-      db.select().from(wardsT),
-      db.select().from(leavesT).orderBy(desc(leavesT.fromDate)),
-    ]);
+  const [
+    doctorRows,
+    patientRows,
+    appointmentRows,
+    prescriptionRows,
+    visitRows,
+    invoiceRows,
+    labRows,
+    wardRows,
+    leaveRows,
+    emergencyRows,
+    bedRows,
+    bedAuditRows,
+  ] = await inBatches([
+    () => db.select().from(doctorsT).orderBy(desc(doctorsT.createdAt)),
+    () => db.select().from(patientsT).orderBy(desc(patientsT.createdAt)),
+    () => db.select().from(appointmentsT).orderBy(desc(appointmentsT.createdAt)),
+    () => db.select().from(prescriptionsT).orderBy(desc(prescriptionsT.date)),
+    () => db.select().from(visitsT).orderBy(desc(visitsT.date)),
+    () => db.select().from(invoicesT).orderBy(desc(invoicesT.date)),
+    () => db.select().from(labsT).orderBy(desc(labsT.requestedOn)),
+    () => db.select().from(wardsT),
+    () => db.select().from(leavesT).orderBy(desc(leavesT.fromDate)),
+    () => db.select().from(emergencyT).orderBy(desc(emergencyT.arrivalAt)),
+    () => db.select().from(bedsT).orderBy(bedsT.wardId),
+    () => db.select().from(bedAuditT).orderBy(desc(bedAuditT.at)).limit(200),
+  ]);
 
   // Ward structure is fixed infrastructure; seed it on first ever load.
   let wardsOut = wardRows;
@@ -113,6 +154,9 @@ export async function buildState(account: SessionAccount): Promise<DataState> {
       labs: labRows,
       wards: wardsOut,
       leaves: leaveRows,
+      emergencies: emergencyRows,
+      beds: account.role === "admin" ? bedRows : [],
+      bedAudit: account.role === "admin" ? bedAuditRows : [],
       session,
       meta: { serverTime: new Date().toISOString() },
     };
@@ -134,6 +178,9 @@ export async function buildState(account: SessionAccount): Promise<DataState> {
     labs: mine(labRows),
     wards: [],
     leaves: leaveRows,
+    emergencies: [],
+    beds: [],
+    bedAudit: [],
     session,
     meta: { serverTime: new Date().toISOString() },
   };

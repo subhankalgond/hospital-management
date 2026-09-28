@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Activity,
+  AlertTriangle,
+  BedDouble,
   CalendarDays,
   ClipboardPlus,
   CreditCard,
@@ -43,6 +45,9 @@ const NAV: NavItem[] = [
   { href: "/doctor", label: "Today's queue", icon: Activity, roles: ["doctor"] },
   { href: "/doctor/patients", label: "Patients", icon: Users, roles: ["doctor"] },
   { href: "/doctor/schedule", label: "Schedule", icon: CalendarDays, roles: ["doctor"] },
+
+  { href: "/emergency", label: "Emergency Center", icon: AlertTriangle, roles: ["admin"] },
+  { href: "/beds", label: "Bed management", icon: BedDouble, roles: ["admin"] },
 
   { href: "/admin", label: "Dashboard", icon: Home, roles: ["admin"] },
   { href: "/admin/appointments", label: "Appointments", icon: CalendarDays, roles: ["admin"] },

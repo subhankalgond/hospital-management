@@ -132,3 +132,61 @@ CREATE TABLE IF NOT EXISTS "leaves" (
 );
 
 CREATE INDEX IF NOT EXISTS "leaves_doctor_idx" ON "leaves" ("doctor_id", "from_date");
+
+CREATE TABLE IF NOT EXISTS "emergency_cases" (
+  "id" text PRIMARY KEY NOT NULL,
+  "account_id" text NOT NULL,
+  "patient_id" text,
+  "walk_in" jsonb DEFAULT '{}'::jsonb NOT NULL,
+  "symptoms" text DEFAULT '' NOT NULL,
+  "vitals" jsonb,
+  "notes" text DEFAULT '' NOT NULL,
+  "trauma" boolean DEFAULT false NOT NULL,
+  "priority" text DEFAULT 'MODERATE' NOT NULL,
+  "triage" jsonb,
+  "triage_at" text,
+  "confirmed_at" text,
+  "reviewer" text,
+  "reason_for_change" text,
+  "assigned_doctor_id" text,
+  "department" text DEFAULT '' NOT NULL,
+  "status" text DEFAULT 'arrived' NOT NULL,
+  "bed_id" text,
+  "arrival_at" text NOT NULL,
+  "updated_at" text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS "emergency_status_idx" ON "emergency_cases" ("status", "priority");
+
+CREATE TABLE IF NOT EXISTS "beds" (
+  "id" text PRIMARY KEY NOT NULL,
+  "label" text NOT NULL,
+  "ward_id" text NOT NULL,
+  "ward_name" text DEFAULT '' NOT NULL,
+  "floor" integer DEFAULT 0 NOT NULL,
+  "room_id" text NOT NULL,
+  "room_label" text DEFAULT '' NOT NULL,
+  "type" text DEFAULT 'private' NOT NULL,
+  "status" text DEFAULT 'available' NOT NULL,
+  "patient_id" text,
+  "occupied_since" text,
+  "reserved_for" text,
+  "reserved_at" text,
+  "last_status_change" text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS "beds_ward_idx" ON "beds" ("ward_id", "status");
+
+CREATE TABLE IF NOT EXISTS "bed_audit" (
+  "id" text PRIMARY KEY NOT NULL,
+  "bed_id" text NOT NULL,
+  "bed_label" text DEFAULT '' NOT NULL,
+  "from_status" text NOT NULL,
+  "to_status" text NOT NULL,
+  "changed_by" text NOT NULL,
+  "changed_by_name" text DEFAULT '' NOT NULL,
+  "reason" text,
+  "at" text NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS "bed_audit_bed_idx" ON "bed_audit" ("bed_id", "at");

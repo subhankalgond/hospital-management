@@ -5,7 +5,14 @@ import { nanoid } from "nanoid";
 import type {
   Account,
   Appointment,
+  BedAuditEntry,
+  BedState,
+  BedStatus,
   Doctor,
+  EmergencyCase,
+  EmergencyPriority,
+  EmergencyStatus,
+  EmergencyVitals,
   Invoice,
   LabRequest,
   Leave,
@@ -14,6 +21,7 @@ import type {
   Role,
   SignUpInput,
   Toast,
+  TriageResult,
   Visit,
   VisitStatus,
   Ward,
@@ -70,6 +78,27 @@ interface NewLeaveInput {
   reason: string;
 }
 
+interface NewEmergencyInput {
+  patientId?: string;
+  walkIn?: { name: string; age: number; gender: "male" | "female" | "other"; contactName: string; contactPhone: string };
+  symptoms: string;
+  vitals?: Partial<EmergencyVitals>;
+  notes?: string;
+  trauma?: boolean;
+  department: string;
+}
+
+type BedAction =
+  | "reserve"
+  | "occupy"
+  | "discharge"
+  | "start-cleaning"
+  | "inspect"
+  | "release"
+  | "maintenance"
+  | "restore"
+  | "release-reservation";
+
 /** resolved account + profile of whoever is signed in */
 export interface SessionUser {
   id: string;
@@ -100,6 +129,9 @@ interface State {
   labs: LabRequest[];
   wards: Ward[];
   leaves: Leave[];
+  emergencies: EmergencyCase[];
+  beds: BedState[];
+  bedAudit: BedAuditEntry[];
   session: SessionUser | null;
   theme: "light" | "dark";
   toasts: Toast[];
@@ -152,6 +184,20 @@ interface State {
   // leaves
   requestLeave: (input: NewLeaveInput) => Promise<{ ok: boolean; error?: string }>;
   cancelLeave: (id: string) => Promise<void>;
+
+  // emergency center
+  createEmergency: (input: NewEmergencyInput) => Promise<{ ok: boolean; id?: string; error?: string }>;
+  runEmergencyTriage: (id: string) => Promise<{ ok: boolean; triage?: TriageResult; error?: string }>;
+  confirmEmergencyPriority: (id: string, priority: EmergencyPriority, reason?: string) => Promise<{ ok: boolean; error?: string }>;
+  setEmergencyStatus: (id: string, status: EmergencyStatus) => Promise<{ ok: boolean; error?: string }>;
+  assignEmergencyDoctor: (id: string, doctorId: string) => Promise<{ ok: boolean; error?: string }>;
+  recordEmergencyVitals: (id: string, vitals: EmergencyVitals) => Promise<{ ok: boolean; error?: string }>;
+  linkEmergencyBed: (id: string, bedId: string) => Promise<{ ok: boolean; error?: string }>;
+
+  // bed management
+  refreshBeds: () => Promise<void>;
+  changeBedState: (bedId: string, action: BedAction, opts?: { patientId?: string; emergencyCaseId?: string; reason?: string }) => Promise<{ ok: boolean; error?: string }>;
+  recommendBed: (emergencyCaseId: string, priority: EmergencyPriority) => Promise<{ ok: boolean; bed?: BedState | null; error?: string }>;
   /** true when `date` falls inside one of the doctor's approved leaves */
   isDoctorOnLeave: (doctorId: string, date: string) => boolean;
   /** earliest bookable slot chip, e.g. "Mon 09:30" — null when none within 14 days */
@@ -189,6 +235,10 @@ const API = {
   doctor: (id: string) => `/api/doctors/${id}`,
   patient: (id: string) => `/api/patients/${id}`,
   import: "/api/import",
+  emergencies: "/api/emergencies",
+  emergency: (id: string) => `/api/emergencies/${id}`,
+  bedStates: "/api/beds/states",
+  bedRecommend: "/api/beds/recommend",
 } as const;
 
 async function apiPost(url: string, body?: unknown): Promise<{ ok: boolean; status: number; data: any }> {
@@ -285,6 +335,9 @@ function applySnapshot(s: State, data: Record<string, unknown>): Partial<State> 
     labs: (data.labs ?? []) as State["labs"],
     wards: (data.wards ?? []) as State["wards"],
     leaves: (data.leaves ?? []) as State["leaves"],
+    emergencies: (data.emergencies ?? []) as State["emergencies"],
+    beds: (data.beds ?? []) as State["beds"],
+    bedAudit: (data.bedAudit ?? []) as State["bedAudit"],
     session: data.session as SessionUser | null,
   };
 }
@@ -320,6 +373,9 @@ export const useStore = create<State>()((set, get) => ({
   labs: [],
   wards: [],
   leaves: [],
+  emergencies: [],
+  beds: [],
+  bedAudit: [],
   session: null,
   theme: typeof window !== "undefined" && window.localStorage.getItem("carepulse-theme") === "dark" ? "dark" : "light",
   toasts: [],
@@ -438,6 +494,9 @@ export const useStore = create<State>()((set, get) => ({
       labs: [],
       wards: [],
       leaves: [],
+      emergencies: [],
+      beds: [],
+      bedAudit: [],
     });
     void apiPost(API.signOut);
   },
@@ -721,6 +780,83 @@ export const useStore = create<State>()((set, get) => ({
     }
     await get().refresh();
     get().toast({ title: "Leave cancelled — slots are open again", variant: "success" });
+  },
+
+  // ───────────────── emergency center ─────────────────
+  createEmergency: async (input) => {
+    const res = await apiPost(API.emergencies, input);
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not register the emergency case." };
+    await get().refresh();
+    get().toast({ title: "Emergency case registered", description: `${res.data?.id ?? ""} added to the queue.`, variant: "success" });
+    return { ok: true, id: res.data?.id };
+  },
+
+  runEmergencyTriage: async (id) => {
+    const res = await apiPatch(API.emergency(id), { action: "triage" });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Triage failed." };
+    await get().refresh();
+    return { ok: true, triage: res.data?.triage as TriageResult };
+  },
+
+  confirmEmergencyPriority: async (id, priority, reason) => {
+    const res = await apiPatch(API.emergency(id), { action: "priority", priority, reason });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not confirm priority." };
+    await get().refresh();
+    get().toast({ title: `Priority confirmed: ${priority}`, variant: "success" });
+    return { ok: true };
+  },
+
+  setEmergencyStatus: async (id, status) => {
+    const res = await apiPatch(API.emergency(id), { action: "status", status });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not update status." };
+    await get().refresh();
+    return { ok: true };
+  },
+
+  assignEmergencyDoctor: async (id, doctorId) => {
+    const res = await apiPatch(API.emergency(id), { action: "assign-doctor", doctorId });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not assign doctor." };
+    await get().refresh();
+    get().toast({ title: "Doctor assigned", variant: "success" });
+    return { ok: true };
+  },
+
+  recordEmergencyVitals: async (id, vitals) => {
+    const res = await apiPatch(API.emergency(id), { action: "record-vitals", vitals });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not record vitals." };
+    await get().refresh();
+    get().toast({ title: "Vitals recorded", variant: "success" });
+    return { ok: true };
+  },
+
+  linkEmergencyBed: async (id, bedId) => {
+    const res = await apiPatch(API.emergency(id), { action: "link-bed", bedId });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not link bed." };
+    await get().refresh();
+    return { ok: true };
+  },
+
+  // ───────────────── bed management ─────────────────
+  refreshBeds: async () => {
+    const res = await fetch(API.bedStates, { cache: "no-store" }).catch(() => null);
+    if (!res || !res.ok) return;
+    const data = (await res.json().catch(() => null)) as { beds?: BedState[]; audit?: BedAuditEntry[] } | null;
+    if (data?.beds) set({ beds: data.beds, bedAudit: data.audit ?? [] });
+  },
+
+  changeBedState: async (bedId, action, opts) => {
+    const res = await apiPost(API.bedStates, { action, bedId, ...opts });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not update the bed." };
+    await Promise.all([get().refresh(), get().refreshBeds()]);
+    get().toast({ title: "Bed updated", description: res.data?.status ? `Now ${String(res.data.status).replace(/-/g, " ")}.` : undefined, variant: "success" });
+    return { ok: true };
+  },
+
+  recommendBed: async (emergencyCaseId, priority) => {
+    const res = await apiPost(API.bedRecommend, { emergencyCaseId, priority });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not search for a bed." };
+    if (!res.data?.bed) return { ok: true, bed: null };
+    return { ok: true, bed: res.data.bed as BedState };
   },
 
   // ───────────────── legacy import ─────────────────

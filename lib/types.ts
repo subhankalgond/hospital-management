@@ -197,3 +197,114 @@ export interface Leave {
   status: LeaveStatus;
   requestedOn: string; // ISO date the leave was requested
 }
+
+/* ─────────────── Emergency Center (AI-assisted triage) ─────────────── */
+
+export type EmergencyPriority = "CRITICAL" | "URGENT" | "MODERATE" | "LOW";
+
+export const PRIORITY_ORDER: EmergencyPriority[] = ["CRITICAL", "URGENT", "MODERATE", "LOW"];
+
+export type EmergencyStatus =
+  | "arrived"
+  | "triage-pending"
+  | "triaged"
+  | "waiting"
+  | "in-assessment"
+  | "in-treatment"
+  | "admitted"
+  | "transferred"
+  | "discharged"
+  | "closed";
+
+export type ConsciousnessLevel = "alert" | "verbal" | "pain" | "unresponsive";
+
+export interface EmergencyVitals {
+  hr: number; // BPM
+  bp: string; // "120/80" mmHg
+  spo2: number; // %
+  rr: number; // /min respiratory rate
+  tempC: number; // °C
+  glucose: number; // mg/dL
+  consciousness: ConsciousnessLevel;
+}
+
+export interface TriageResult {
+  aiPriority: EmergencyPriority;
+  riskIndicators: string[];
+  recommendation: string;
+  reasoning: string;
+  /** true — this engine is a transparent rule-based demo, not a medical model */
+  demoMode: true;
+  ranAt: string; // ISO timestamp
+}
+
+export interface EmergencyCase {
+  id: string;
+  accountId: string; // staff member who registered the case
+  /** link to an existing registered patient, when found */
+  patientId?: string;
+  /** walk-in patient details when no registered patient exists */
+  walkIn?: {
+    name: string;
+    age: number;
+    gender: "male" | "female" | "other";
+    contactName: string;
+    contactPhone: string;
+  };
+  symptoms: string;
+  vitals: EmergencyVitals | null;
+  notes: string;
+  trauma: boolean;
+  priority: EmergencyPriority; // final (staff-confirmed) priority
+  triage: TriageResult | null;
+  triageAt?: string;
+  confirmedAt?: string;
+  reviewer?: string;
+  reasonForChange?: string;
+  assignedDoctorId?: string;
+  department: string;
+  status: EmergencyStatus;
+  bedId?: string; // set when admitted
+  arrivalAt: string; // ISO timestamp
+  updatedAt: string;
+}
+
+/* ─────────────── Smart Bed Management ─────────────── */
+
+export type BedStatus =
+  | "available"
+  | "reserved"
+  | "occupied"
+  | "discharge-pending"
+  | "cleaning"
+  | "inspection"
+  | "maintenance";
+
+export interface BedState {
+  id: string;
+  label: string;
+  wardId: string;
+  wardName: string;
+  floor: number;
+  roomId: string;
+  roomLabel: string;
+  type: "private" | "semi-private" | "icu";
+  status: BedStatus;
+  patientId?: string;
+  occupiedSince?: string;
+  reservedFor?: string; // emergency case id
+  reservedAt?: string;
+  lastStatusChange: string; // ISO timestamp
+}
+
+export interface BedAuditEntry {
+  id: string;
+  bedId: string;
+  bedLabel: string;
+  fromStatus: BedStatus;
+  toStatus: BedStatus;
+  changedBy: string;
+  changedByName: string;
+  reason?: string;
+  at: string; // ISO timestamp
+}
