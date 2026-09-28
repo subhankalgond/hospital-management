@@ -19,3 +19,6 @@ coverage/
 *.pem
 .vercel
 __pycache__/
+.freebuff/
+server.log
+*.tsbuildinfo
