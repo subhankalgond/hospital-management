@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Brain, ChevronRight, Loader2, Siren, UserPlus, Users } from "lucide-react";
+import { AlertTriangle, Brain, ChevronRight, Loader2, Siren, Sparkles, UserPlus, Users } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { EmergencyCase, EmergencyVitals } from "@/lib/types";
 import { PRIORITY_ORDER } from "@/lib/types";
@@ -382,6 +382,9 @@ function NewEmergencyDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                   ))}
                 </SelectContent>
               </Select>
+              {symptoms.trim().length > 8 && (
+                <NlpDeptHint symptoms={symptoms} current={department} onPick={setDepartment} />
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="em-notes">Notes</Label>
@@ -420,5 +423,86 @@ function VitalField({
         placeholder={placeholder ?? unit}
       />
     </div>
+  );
+}
+
+/**
+ * NLP symptom → department suggestion (decision support). Runs while staff
+ * type; picking the suggestion just pre-fills the Select — staff stay in
+ * control and can override freely.
+ */
+function NlpDeptHint({
+  symptoms,
+  current,
+  onPick,
+}: {
+  symptoms: string;
+  current: string;
+  onPick: (dept: string) => void;
+}) {
+  const [hint, setHint] = React.useState<{ department: string; confidence: number; isEmergency: boolean; matchedTerms: string[] } | null>(null);
+  const [busy, setBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    const text = symptoms.trim();
+    if (text.length < 9) { setHint(null); return; }
+    setBusy(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/nlp/symptoms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setHint({
+            department: data.department,
+            confidence: data.confidence,
+            isEmergency: data.urgency?.isEmergency ?? false,
+            matchedTerms: data.urgency?.matchedTerms ?? [],
+          });
+        }
+      } catch { /* hint is best-effort */ } finally {
+        setBusy(false);
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [symptoms]);
+
+  if (busy && !hint) {
+    return (
+      <p className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
+        <Loader2 className="size-3 animate-spin" /> Analyzing symptoms…
+      </p>
+    );
+  }
+  if (!hint) return null;
+
+  if (hint.isEmergency) {
+    return (
+      <p className="mt-1 rounded-lg border border-destructive/30 bg-destructive/10 px-2.5 py-1.5 text-xs font-medium text-destructive">
+        <Sparkles className="mr-1 inline size-3" />
+        Urgent terms detected ({hint.matchedTerms.slice(0, 3).join(", ")}) — triage will flag this case.
+      </p>
+    );
+  }
+
+  const matches = hint.department === current;
+  return (
+    <p className="mt-1 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs">
+      <Sparkles className="mr-1 inline size-3 text-primary" />
+      AI suggests <b>{hint.department}</b> ({Math.round(hint.confidence * 100)}%)
+      {!matches && (
+        <>
+          {" — "}
+          <button type="button" className="font-semibold text-primary underline underline-offset-2" onClick={() => onPick(hint.department)}>
+            use it
+          </button>
+        </>
+      )}
+      {" · "}
+      <span className="text-muted-foreground">decision support only</span>
+    </p>
   );
 }

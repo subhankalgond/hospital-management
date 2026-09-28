@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
+  Brain,
   BedDouble,
   CalendarDays,
   ClipboardPlus,
@@ -48,6 +49,7 @@ const NAV: NavItem[] = [
 
   { href: "/emergency", label: "Emergency Center", icon: AlertTriangle, roles: ["admin"] },
   { href: "/beds", label: "Bed management", icon: BedDouble, roles: ["admin"] },
+  { href: "/ai", label: "AI Insights", icon: Brain, roles: ["admin", "doctor", "patient"] },
 
   { href: "/admin", label: "Dashboard", icon: Home, roles: ["admin"] },
   { href: "/admin/appointments", label: "Appointments", icon: CalendarDays, roles: ["admin"] },

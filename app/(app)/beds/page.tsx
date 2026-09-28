@@ -14,7 +14,8 @@ import {
 import { Dialog, DialogContent } from "@/components/ui/overlays";
 import { PageHeader } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn, dateLabel } from "@/lib/utils";
+import { cn, dateLabel, ageFrom } from "@/lib/utils";
+import { PredictedDischargeChip } from "@/components/ml/PredictedDischargeChip";
 
 const statusMeta: Record<BedStatus, { label: string; variant: "default" | "secondary" | "success" | "warning" | "destructive" | "sky" | "violet" | "outline" }> = {
   available: { label: "Available", variant: "success" },
@@ -206,6 +207,11 @@ export default function BedManagement() {
                               {bed.status === "occupied" && (
                                 <p className="mt-1.5 truncate text-xs text-muted-foreground">
                                   {p?.name ?? bed.patientId} · since {bed.occupiedSince ? dateLabel(bed.occupiedSince) : "—"}
+                                  <PredictedDischargeChip
+                                    occupiedSince={bed.occupiedSince}
+                                    age={p ? ageFrom(p.dob) : undefined}
+                                    comorbidityCount={p?.conditions?.length ?? 0}
+                                  />
                                 </p>
                               )}
                               {bed.status === "reserved" && (

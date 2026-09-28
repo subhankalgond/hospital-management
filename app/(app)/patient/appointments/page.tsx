@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CalendarPlus, CalendarOff, Clock, MapPin, Search, Stethoscope, GraduationCap, ArrowRight } from "lucide-react";
+import { CalendarPlus, CalendarOff, Clock, MapPin, Search, Stethoscope, GraduationCap, ArrowRight, Sparkles, Loader2 } from "lucide-react";
 import { useStore, type Slot } from "@/lib/store";
 import type { Appointment, Doctor } from "@/lib/types";
 import {
@@ -12,6 +12,7 @@ import {
   Badge,
   Input,
   Label,
+  Textarea,
 } from "@/components/ui/primitives";
 import { Dialog, DialogContent, DialogTrigger, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/overlays";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -103,6 +104,38 @@ export default function PatientAppointments() {
   }, [selectedOnLeave, selectedDoctor?.id, date, doctorId, doctors, nextFreeByDoctor]);
 
   React.useEffect(() => setSlot(null), [doctorId, date]);
+
+  // ── AI symptom router (NLP): suggest the right department ──
+  const [aiOpen, setAiOpen] = React.useState(false);
+  const [aiText, setAiText] = React.useState("");
+  const [aiBusy, setAiBusy] = React.useState(false);
+  const [aiHint, setAiHint] = React.useState<
+    | { department: string; confidence: number; isEmergency: boolean; matchedTerms: string[] }
+    | null
+  >(null);
+
+  async function runAiHint() {
+    if (!aiText.trim()) return;
+    setAiBusy(true);
+    try {
+      const res = await fetch("/api/nlp/symptoms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: aiText }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAiHint({
+          department: data.department,
+          confidence: data.confidence,
+          isEmergency: data.urgency?.isEmergency ?? false,
+          matchedTerms: data.urgency?.matchedTerms ?? [],
+        });
+      }
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   async function submit() {
     if (!canBook) return;
@@ -311,6 +344,54 @@ export default function PatientAppointments() {
                       <p className="rounded-lg bg-warning/10 px-3 py-2 text-center text-xs font-medium text-warning">
                         All slots blocked — this doctor is on leave on {dateLabel(date)}.
                       </p>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-dashed p-3">
+                    <button
+                      type="button"
+                      onClick={() => setAiOpen((v) => !v)}
+                      className="flex w-full items-center justify-between text-sm font-medium"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Sparkles className="size-4 text-primary" /> Not sure which department? Ask the AI router
+                      </span>
+                      <span className="text-xs text-muted-foreground">{aiOpen ? "hide" : "open"}</span>
+                    </button>
+                    {aiOpen && (
+                      <div className="mt-2 space-y-2">
+                        <Textarea
+                          rows={2}
+                          value={aiText}
+                          onChange={(e) => setAiText(e.target.value)}
+                          placeholder="Describe your symptoms, e.g. chest tightness while walking…"
+                        />
+                        <Button type="button" size="sm" variant="secondary" disabled={aiBusy || !aiText.trim()} onClick={runAiHint}>
+                          {aiBusy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                          Suggest department
+                        </Button>
+                        {aiHint && (
+                          <div className="space-y-1.5">
+                            {aiHint.isEmergency ? (
+                              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+                                These symptoms can be an emergency ({aiHint.matchedTerms.join(", ")}). Please go to the Emergency Center instead of booking.
+                              </p>
+                            ) : (
+                              <p className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+                                AI suggests <b>{aiHint.department}</b> ({Math.round(aiHint.confidence * 100)}% confidence).{" "}
+                                <button
+                                  type="button"
+                                  className="font-semibold text-primary underline underline-offset-2"
+                                  onClick={() => setDeptFilter(aiHint.department)}
+                                >
+                                  Show {aiHint.department} doctors
+                                </button>
+                              </p>
+                            )}
+                            <p className="text-[11px] text-muted-foreground">Decision support only — not a diagnosis.</p>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 
