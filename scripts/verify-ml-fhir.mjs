@@ -4,6 +4,11 @@
  *
  *   node scripts/verify-ml-fhir.mjs [baseUrl]
  */
+// load .env.local so ADMIN_ACCESS_CODE / DATABASE_URL match the dev server
+for (const line of (await import("node:fs")).readFileSync(".env.local", "utf8").split("\n")) {
+  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+  if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+}
 const base = process.argv[2] ?? "http://localhost:3210";
 let failures = 0;
 
@@ -104,6 +109,21 @@ let fhirPatientId = "";
     ["ear blocked after cold", "ENT", null],
     ["blurred vision when reading", "Ophthalmology", null],
     ["unconscious not responding", null, true],
+    // real-world phrasings (post-retrain gold set samples)
+    ["chest feels heavy when walking fast or after climbing stairs", "Cardiology", null],
+    ["my 4 year old has loose motions for 2 days i give ors but it keeps coming back", "Pediatrics", null],
+    ["ring shaped itchy patch spreading on the neck", "Dermatology", null],
+    ["migraine attacks twice a week with light sensitivity", "Neurology", null],
+    ["exam pressure through the roof, student anxious", "Psychiatry", null],
+    ["right ear fluid, feels full since morning", "ENT", null],
+    ["hazy vision, light glare, cataract in one eye", "Ophthalmology", null],
+    ["periods painful with vomiting each cycle", "Gynecology", null],
+    ["weak stream while passing urine since months", "General Medicine", null],
+    ["pet dard ho raha hai", "General Medicine", null],
+    ["ghutne me dard hai", "Orthopedics", null],
+    ["kaan me dard hai", "ENT", null],
+    ["mahwari me dard", "Gynecology", null],
+    ["thunderclap headache, worst of my life", "Emergency Center", null],
   ];
   for (const [text, dept, emergency] of cases) {
     const r = await api("/api/nlp/symptoms", {
@@ -116,6 +136,45 @@ let fhirPatientId = "";
     check(`NLP "${text.slice(0, 32)}…"`, r.status === 200 && okDept && okUrg,
       `→ ${r.body?.department}${r.body?.urgency?.isEmergency ? " (EMERGENCY)" : ""}`);
   }
+}
+
+// ── 4. demo doctor accounts (2 per department, shared password) ──
+{
+  const demo = [
+    ["anil.mehta@demo.carepulse", "Cardiology"],
+    ["farhan.qureshi@demo.carepulse", "Neurology"],
+    ["meera.deshpande@demo.carepulse", "Pediatrics"],
+    ["lakshmi.gupta@demo.carepulse", "Gynecology"],
+    ["rakesh.talwar@demo.carepulse", "General Medicine"],
+  ];
+  let cookie2 = "";
+  for (const [email, dept] of demo) {
+    const r = await api("/api/auth/signin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password: "Demo@12345" }),
+    });
+    const setCookie = r.headers.get("set-cookie") ?? "";
+    if (setCookie) cookie2 = setCookie.split(";")[0];
+    check(`demo signin ${email}`, r.status === 200 && r.body?.ok === true && String(r.body?.name || "").includes("(Demo)"),
+      `→ ${r.body?.name ?? "?"} (${r.body?.role ?? "?"})`);
+    // the signed-in demo doctor must be able to use the NLP router
+    if (cookie2) {
+      const nlp = await api("/api/nlp/symptoms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Cookie: cookie2 },
+        body: JSON.stringify({ text: `sugar 300 after lunch feel thirsty always` }),
+      });
+      check(`demo ${email.split("@")[0]} uses NLP router`, nlp.status === 200 && Boolean(nlp.body?.department), `→ ${nlp.body?.department}`);
+    }
+  }
+  // wrong password must fail for demo accounts too
+  const bad = await api("/api/auth/signin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "anil.mehta@demo.carepulse", password: "wrong-password" }),
+  });
+  check("demo wrong password rejected", bad.status === 401);
 }
 
 // ── cleanup ──
