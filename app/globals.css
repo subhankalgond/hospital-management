@@ -1,69 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Source+Sans+3:ital,wght@0,300..800;1,300..800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 160 30% 98%;
-    --foreground: 200 30% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 200 30% 10%;
+    --font-serif: 'Newsreader', Georgia, serif;
+    --font-sans: 'Source Sans 3', Inter, system-ui, sans-serif;
+    --background: 43 30% 96%; /* Warm ivory #F7F5F0 */
+    --foreground: 120 5% 15%; /* Charcoal #252925 */
+    --card: 0 0% 100%; /* Pure white #FFFFFF */
+    --card-foreground: 120 5% 15%; /* Charcoal #252925 */
     --popover: 0 0% 100%;
-    --popover-foreground: 200 30% 10%;
-    --primary: 172 72% 28%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 168 35% 92%;
-    --secondary-foreground: 172 60% 20%;
-    --muted: 170 20% 94%;
-    --muted-foreground: 200 12% 42%;
-    --accent: 172 45% 90%;
-    --accent-foreground: 172 60% 18%;
-    --destructive: 0 72% 48%;
+    --popover-foreground: 120 5% 15%;
+    --primary: 168 45% 16%; /* Deep forest green #173D35 */
+    --primary-foreground: 43 30% 96%;
+    --secondary: 43 16% 90%; /* Warm grey surface #EBE8E1 */
+    --secondary-foreground: 168 45% 16%;
+    --muted: 44 14% 91%; /* Muted ivory #EEECF4 */
+    --muted-foreground: 73 4% 46%; /* Muted grey #777970 */
+    --accent: 44 18% 88%;
+    --accent-foreground: 168 45% 16%;
+    --destructive: 5 63% 40%; /* Restrained red #A83226 */
     --destructive-foreground: 0 0% 100%;
-    --success: 152 60% 34%;
+    --success: 160 49% 23%; /* Muted green #1E5945 */
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 44%;
+    --warning: 35 80% 35%; /* Amber #9E6412 */
     --warning-foreground: 0 0% 100%;
-    --border: 170 18% 88%;
-    --input: 170 18% 84%;
-    --ring: 172 72% 28%;
-    --radius: 0.9rem;
-    --chart-1: 172 66% 36%;
-    --chart-2: 199 89% 44%;
-    --chart-3: 262 60% 58%;
-    --chart-4: 38 92% 50%;
-    --chart-5: 0 74% 56%;
+    --border: 44 14% 84%; /* Fine warm-grey border #DCD9D1 */
+    --input: 44 14% 82%;
+    --ring: 168 45% 16%;
+    --radius: 0.25rem; /* Crisp 4px radius */
+    --chart-1: 168 45% 16%; /* Deep forest green */
+    --chart-2: 205 55% 31%; /* Muted blue */
+    --chart-3: 35 80% 35%; /* Amber */
+    --chart-4: 160 49% 23%; /* Muted green */
+    --chart-5: 5 63% 40%; /* Muted red */
   }
 
   .dark {
-    --background: 200 28% 6%;
-    --foreground: 160 24% 94%;
-    --card: 200 24% 9%;
-    --card-foreground: 160 24% 94%;
-    --popover: 200 24% 9%;
-    --popover-foreground: 160 24% 94%;
-    --primary: 172 62% 46%;
-    --primary-foreground: 200 30% 8%;
-    --secondary: 200 20% 16%;
-    --secondary-foreground: 160 24% 90%;
-    --muted: 200 18% 14%;
-    --muted-foreground: 170 12% 62%;
-    --accent: 172 40% 18%;
-    --accent-foreground: 160 30% 88%;
-    --destructive: 0 66% 52%;
+    --background: 150 7% 10%; /* Dark charcoal #181B19 */
+    --foreground: 43 20% 94%; /* Warm white #F7F5F0 */
+    --card: 150 6% 13%; /* Dark paper #1F2320 */
+    --card-foreground: 43 20% 94%;
+    --popover: 150 6% 13%;
+    --popover-foreground: 43 20% 94%;
+    --primary: 162 38% 40%; /* Lighter forest #2F7464 */
+    --primary-foreground: 150 7% 10%;
+    --secondary: 150 5% 18%;
+    --secondary-foreground: 43 20% 92%;
+    --muted: 150 5% 18%;
+    --muted-foreground: 73 4% 65%; /* #A1A399 */
+    --accent: 150 6% 22%;
+    --accent-foreground: 43 20% 94%;
+    --destructive: 5 55% 50%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 55% 44%;
-    --success-foreground: 200 30% 8%;
-    --warning: 38 92% 52%;
-    --warning-foreground: 200 30% 8%;
-    --border: 200 16% 20%;
-    --input: 200 16% 24%;
-    --ring: 172 62% 46%;
-    --chart-1: 172 60% 48%;
-    --chart-2: 199 89% 56%;
-    --chart-3: 262 70% 66%;
-    --chart-4: 38 92% 56%;
-    --chart-5: 0 74% 60%;
+    --success: 160 40% 40%;
+    --success-foreground: 150 7% 10%;
+    --warning: 35 70% 45%;
+    --warning-foreground: 150 7% 10%;
+    --border: 150 5% 24%; /* #363A37 */
+    --input: 150 5% 28%;
+    --ring: 162 38% 40%;
+    --chart-1: 162 38% 45%;
+    --chart-2: 205 55% 48%;
+    --chart-3: 35 70% 50%;
+    --chart-4: 160 40% 45%;
+    --chart-5: 5 55% 52%;
   }
 
   * {
@@ -72,15 +76,33 @@
 
   html {
     scroll-behavior: smooth;
+    font-family: 'Source Sans 3', Inter, system-ui, -apple-system, sans-serif;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Source Sans 3', Inter, system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv11", "ss01";
   }
 
   ::selection {
-    @apply bg-primary/20;
+    @apply bg-primary/20 text-primary;
+  }
+
+  /* WebKit autofill override to preserve theme colors */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    -webkit-box-shadow: 0 0 0px 1000px hsl(var(--card)) inset !important;
+    box-shadow: 0 0 0px 1000px hsl(var(--card)) inset !important;
+    transition: background-color 5000s ease-in-out 0s !important;
   }
 }
 
@@ -90,38 +112,44 @@
     scrollbar-color: hsl(var(--border)) transparent;
   }
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: hsl(var(--border));
-    border-radius: 999px;
+    border-radius: 2px;
   }
   .text-balance {
     text-wrap: balance;
   }
+  /* Editorial solid primary styling without neon gradients */
   .gradient-primary {
-    background-image: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(190 70% 32%) 100%);
+    background: hsl(var(--primary));
   }
   .gradient-brand {
-    background-image:
-      radial-gradient(1200px 500px at 10% -10%, hsl(172 70% 40% / .35), transparent 60%),
-      radial-gradient(1000px 500px at 110% 110%, hsl(199 80% 45% / .3), transparent 55%),
-      linear-gradient(160deg, hsl(192 60% 12%) 0%, hsl(178 65% 14%) 55%, hsl(172 70% 16%) 100%);
+    background: #173D35;
   }
   .glass {
-    background: hsl(var(--card) / .75);
-    backdrop-filter: blur(12px);
+    background: hsl(var(--background) / 0.92);
+    backdrop-filter: blur(8px);
+  }
+  .editorial-kicker {
+    font-family: 'Source Sans 3', Inter, system-ui, sans-serif;
+    @apply uppercase text-[11px] font-semibold tracking-widest text-muted-foreground;
+  }
+  .editorial-title {
+    font-family: 'Newsreader', Georgia, serif;
+    @apply text-3xl sm:text-4xl font-normal tracking-tight text-foreground;
+  }
+  .editorial-divider {
+    @apply border-b border-border;
   }
 }
 
-/* Mobile performance: heavy backdrop blur and infinite pulse/ping animations
-   are the main sources of jank on low-end phones (theme toggle and navigation
-   felt stuck). They are purely decorative — drop them on small screens. */
 @media (max-width: 640px) {
   .glass {
     backdrop-filter: none;
-    background: hsl(var(--card) / 0.94);
+    background: hsl(var(--card));
   }
   .animate-pulse-soft,
   .animate-ping,
@@ -129,3 +157,4 @@
     animation: none;
   }
 }
+

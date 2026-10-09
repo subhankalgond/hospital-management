@@ -135,9 +135,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const isPatient = session.role === "patient";
 
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh bg-background text-foreground">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r bg-card lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-card lg:flex">
         <SidebarContent items={items} pathname={pathname} role={session.role} />
       </aside>
 
@@ -230,16 +230,16 @@ function SidebarContent({
   pathname: string;
   role: Role;
 }) {
-  const roleTag = role === "admin" ? "Admin console" : role === "doctor" ? "Clinician workspace" : "Patient portal";
+  const roleTag = role === "admin" ? "Admin Console" : role === "doctor" ? "Clinician Workspace" : "Patient Portal";
   return (
     <>
-      <div className="flex h-16 items-center px-5">
+      <div className="flex h-16 items-center px-5 border-b border-border/60">
         <Brand />
       </div>
-      <div className="mx-4 mb-3 rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground">
-        {roleTag}
+      <div className="px-5 py-2.5 border-b border-border/60 bg-muted/30">
+        <p className="uppercase text-[10px] font-semibold tracking-widest text-muted-foreground">{roleTag}</p>
       </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4 scrollbar-thin">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3 scrollbar-thin">
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
@@ -247,21 +247,20 @@ function SidebarContent({
               key={item.href}
               href={item.href}
               className={cn(
-                "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+                "group flex items-center gap-3 rounded-xs px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors border-l-2",
                 active
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "border-primary bg-secondary/80 text-primary"
+                  : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               )}
             >
-              <item.icon className={cn("size-[18px] transition-transform group-hover:scale-110")} />
+              <item.icon className={cn("size-4 shrink-0 transition-transform group-hover:scale-105")} />
               {item.label}
-              {active && <span className="ml-auto size-1.5 rounded-full bg-primary" />}
             </Link>
           );
         })}
       </nav>
-      <div className="border-t p-4 text-xs text-muted-foreground">
-        CarePulse v1.0
+      <div className="border-t border-border px-5 py-3 text-[11px] font-serif text-muted-foreground">
+        CarePulse · Hospital Operations
       </div>
     </>
   );
@@ -272,7 +271,7 @@ function BottomNav({ pathname }: { pathname: string }) {
     ["/patient", "/patient/appointments", "/patient/records", "/patient/billing"].includes(n.href)
   );
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
       {items.map((item) => {
         const active = pathname === item.href;
         return (
@@ -280,11 +279,11 @@ function BottomNav({ pathname }: { pathname: string }) {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium",
-              active ? "text-primary" : "text-muted-foreground"
+              "flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-semibold uppercase tracking-wider border-t-2",
+              active ? "border-primary text-primary" : "border-transparent text-muted-foreground"
             )}
           >
-            <item.icon className="size-5" />
+            <item.icon className="size-4" />
             {item.label.split(" ")[0]}
           </Link>
         );
@@ -306,17 +305,16 @@ function LegacyImportBanner() {
   const n = (key: string) => (Array.isArray((snapshot as Record<string, unknown>)[key]) ? ((snapshot as Record<string, unknown>)[key] as unknown[]).length : 0);
 
   return (
-    <div className="border-b bg-warning/10 px-4 py-3 sm:px-6">
+    <div className="border-b border-warning/30 bg-warning/10 px-4 py-2.5 sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-medium">Found saved data on this device</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-warning">Found saved local data</p>
           <p className="text-xs text-muted-foreground">
             {err ?? (
               <>
                 {n("accounts")} account(s), {n("doctors")} doctor(s), {n("patients")} patient(s),{" "}
-                {n("appointments")} appointment(s) and more, created before the shared database existed.
-                {importedOn ? " (You imported data here before.)" : ""} Import them into the shared database
-                so every device can see them?
+                {n("appointments")} appointment(s) and more.
+                {importedOn ? " (Previously imported.)" : ""} Import into shared database?
               </>
             )}
           </p>
@@ -324,7 +322,7 @@ function LegacyImportBanner() {
         <div className="flex shrink-0 items-center gap-2">
           <Button
             size="sm"
-            variant="gradient"
+            variant="default"
             disabled={busy}
             onClick={async () => {
               setBusy(true);
@@ -344,18 +342,16 @@ function LegacyImportBanner() {
         </div>
       </div>
     </div>
-  );}
+  );
+}
 
 function OnCallPill({ role }: { role: Role }) {
   const doctors = useStore((s) => s.doctors);
   if (role !== "admin") return null;
   const onCall = doctors.filter((d) => d.onCall).length;
   return (
-    <span className="mr-1 hidden items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-xs font-medium text-success md:inline-flex">
-      <span className="relative flex size-2">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
-        <span className="relative inline-flex size-2 rounded-full bg-success" />
-      </span>
+    <span className="mr-1 hidden items-center gap-1.5 rounded-sm border border-success/30 bg-success/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-success md:inline-flex">
+      <span className="size-1.5 rounded-full bg-success" />
       {onCall} on call
     </span>
   );
@@ -364,8 +360,11 @@ function OnCallPill({ role }: { role: Role }) {
 function Brand() {
   return (
     <Link href="/" className="flex items-center gap-2.5" aria-label="CarePulse home">
-      <HeartPulseMark className="size-8 text-primary" />
-      <span className="font-display text-lg font-bold tracking-tight">CarePulse</span>
+      <HeartPulseMark className="size-6 text-primary" />
+      <div className="flex flex-col">
+        <span className="font-serif text-xl font-normal tracking-tight leading-none text-foreground">CarePulse</span>
+        <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground mt-0.5">Clinical Operations</span>
+      </div>
     </Link>
   );
 }
@@ -376,7 +375,7 @@ function HeartPulseMark({ className }: { className?: string }) {
       <path
         d="M12 21s-7.5-4.7-9.5-9.2C.9 8 2.6 4.5 6 4.1c2-.3 3.9.7 6 3 2.1-2.3 4-3.3 6-3 3.4.4 5.1 3.9 3.5 7.7C19.5 16.3 12 21 12 21z"
         fill="currentColor"
-        opacity=".18"
+        opacity=".2"
       />
       <path
         d="M2.5 11.5h4l1.7-3.4 2.6 6.4 2.4-4.6 1.4 2.6h6.9"
@@ -388,3 +387,4 @@ function HeartPulseMark({ className }: { className?: string }) {
     </svg>
   );
 }
+

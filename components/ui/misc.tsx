@@ -41,21 +41,25 @@ export function LabStatusBadge({ status }: { status: LabStatus }) {
 export function PageHeader({
   title,
   description,
+  kicker,
   actions,
   className,
 }: {
   title: string;
   description?: string;
+  kicker?: string;
   actions?: React.ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn("mb-6 flex flex-wrap items-end justify-between gap-3", className)}>
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+    <div className={cn("mb-8 pb-4 border-b border-border flex flex-wrap items-end justify-between gap-4", className)}>
+      <div className="space-y-1">
+        {kicker && <p className="editorial-kicker">{kicker}</p>}
+        <h1 className="font-serif text-3xl sm:text-4xl font-normal tracking-tight text-foreground">{title}</h1>
+        {description && <p className="text-sm text-muted-foreground max-w-2xl">{description}</p>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
     </div>
   );
 }
+

@@ -49,41 +49,42 @@ export default function DoctorQueue() {
   return (
     <>
       <PageHeader
-        title={`Today's queue — ${me.name}`}
-        description={`${me.specialty} · Room ${me.room} · ${queue.length} appointments`}
+        kicker="Clinician Workspace"
+        title={`Today's Queue — ${me.name}`}
+        description={`${me.specialty} · Room ${me.room} · ${queue.length} Total Appointments`}
       />
 
       {onLeaveToday && (
-        <div className="mb-4 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
-          <span className="font-medium text-warning">🏖 You are on approved leave today.</span>{" "}
-          <span className="text-muted-foreground">The queue below is unchanged, but patients cannot book new appointments until your leave ends.</span>
+        <div className="mb-6 rounded border border-warning/40 bg-warning/10 px-4 py-3 text-xs">
+          <span className="font-semibold uppercase tracking-wider text-warning">Approved Leave Active</span>{" "}
+          <span className="text-muted-foreground">The queue below is displayed for record keeping, but new bookings are paused.</span>
         </div>
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Waiting" value={waiting.length} icon={<CircleDot className="size-5" />} tone="warning" sub="Checked in, not seen" />
-        <StatCard label="In consultation" value={inProgress.length} icon={<Activity className="size-5" />} tone="primary" sub="Currently with you" />
-        <StatCard label="Completed" value={completed.length} icon={<CheckCircle2 className="size-5" />} tone="success" sub={`${Math.round((completed.length / Math.max(queue.length, 1)) * 100)}% of today`} />
+        <StatCard label="Waiting Queue" value={waiting.length} icon={<CircleDot className="size-4" />} tone="warning" sub="Checked in, pending consultation" />
+        <StatCard label="In Consultation" value={inProgress.length} icon={<Activity className="size-4" />} tone="primary" sub="Currently with clinician" />
+        <StatCard label="Completed Visits" value={completed.length} icon={<CheckCircle2 className="size-4" />} tone="success" sub={`${Math.round((completed.length / Math.max(queue.length, 1)) * 100)}% completed today`} />
       </div>
 
       <div className="mt-6 space-y-3">
         {queue.length === 0 && (
-          <EmptyState emoji="☕" title="No appointments today" description="Enjoy the calm — your schedule is clear." />
+          <EmptyState emoji="☕" title="No appointments scheduled today" description="Enjoy the calm — your schedule is currently clear." />
         )}
         {queue.map((a) => {
           const p = patients.find((x) => x.id === a.patientId);
           const st = a.queueStatus ?? "waiting";
           return (
-            <Card key={a.id} className={"p-5 transition-all " + (st === "in-progress" ? "ring-2 ring-primary/40" : "")}>
+            <Card key={a.id} className={"p-4 transition-all " + (st === "in-progress" ? "border-primary bg-primary/5" : "")}>
               <div className="flex flex-wrap items-center gap-4">
-                <div className="w-16 text-center">
-                  <p className="font-display text-lg font-bold tabular-nums">{a.time}</p>
-                  <p className="text-xs text-muted-foreground">{a.durationMin} min</p>
+                <div className="w-16 text-center border-r border-border/50 pr-4">
+                  <p className="font-serif text-lg font-normal tracking-tight tabular-nums text-foreground">{a.time}</p>
+                  <p className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">{a.durationMin} min</p>
                 </div>
                 <Avatar name={p?.name ?? "?"} />
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{p?.name ?? "Unknown patient"} <span className="ml-1 text-xs font-normal text-muted-foreground">{p?.id.toUpperCase()}</span></p>
-                  <p className="truncate text-sm text-muted-foreground">{a.reason}</p>
+                  <p className="font-serif text-base font-normal text-foreground">{p?.name ?? "Unknown Patient"} <span className="ml-1 text-[11px] font-mono font-normal text-muted-foreground">({p?.id.toUpperCase()})</span></p>
+                  <p className="truncate text-xs text-muted-foreground">{a.reason}</p>
                 </div>
                 {p && p.allergies.length > 0 && (
                   <Badge variant="destructive">⚠ {p.allergies[0]}</Badge>
@@ -93,24 +94,24 @@ export default function DoctorQueue() {
                     <>
                       <Badge variant="secondary">Waiting</Badge>
                       <Button size="sm" onClick={() => setQueueStatus(a.id, "in-progress")}>
-                        <Play /> Start
+                        <Play className="size-3.5" /> Start
                       </Button>
                       <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => markNoShow(a.id)}>
-                        <UserX /> No-show
+                        <UserX className="size-3.5" /> No-Show
                       </Button>
                     </>
                   )}
                   {st === "in-progress" && (
                     <>
-                      <Badge variant="sky">In consultation</Badge>
-                      <Button size="sm" variant="gradient" onClick={() => setCompleting(a)}>
-                        Complete visit
+                      <Badge variant="sky">In Consultation</Badge>
+                      <Button size="sm" variant="default" onClick={() => setCompleting(a)}>
+                        Complete Visit
                       </Button>
                     </>
                   )}
                   {st === "completed" && (
                     <Badge variant="success">
-                      <CheckCircle2 /> Completed
+                      <CheckCircle2 className="size-3.5" /> Completed
                     </Badge>
                   )}
                 </div>

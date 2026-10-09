@@ -23,31 +23,25 @@ export function DialogContent({
 }) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-fade-in" />
-      {/*
-        Positioning wrapper: centering via flex (never via translate on the
-        content itself — the open animation's transform would override the
-        translate utilities and push tall dialogs off-screen). Bottom-sheet on
-        mobile, centered on larger screens; the content scrolls internally.
-      */}
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs data-[state=open]:animate-fade-in" />
       <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
         <DialogPrimitive.Content
           className={cn(
-            "pointer-events-auto relative max-h-[85dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl border bg-card p-6 shadow-lift data-[state=open]:animate-scale-in",
+            "pointer-events-auto relative max-h-[85dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded border border-border bg-card p-6 shadow-paper data-[state=open]:animate-scale-in",
             className
           )}
           {...props}
         >
-          <div className="mb-4 space-y-1.5 pr-8">
-            <DialogPrimitive.Title className="text-lg font-semibold">{title}</DialogPrimitive.Title>
+          <div className="mb-4 space-y-1.5 pr-8 border-b border-border/50 pb-3">
+            <DialogPrimitive.Title className="font-serif text-xl font-normal tracking-tight text-foreground">{title}</DialogPrimitive.Title>
             {description && (
-              <DialogPrimitive.Description className="text-sm text-muted-foreground">
+              <DialogPrimitive.Description className="text-xs text-muted-foreground leading-relaxed">
                 {description}
               </DialogPrimitive.Description>
             )}
           </div>
           {children}
-          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-1 opacity-70 transition-opacity hover:bg-muted hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring">
+          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-xs p-1 opacity-60 transition-opacity hover:bg-muted hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-ring">
             <X className="size-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
@@ -68,7 +62,7 @@ export const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:truncate",
+      "flex h-9 w-full items-center justify-between rounded border border-input bg-card px-3 py-1.5 text-sm shadow-2xs focus:outline-none focus:ring-1 focus:ring-ring focus:border-primary disabled:cursor-not-allowed disabled:opacity-50 [&>span]:truncate",
       className
     )}
     {...props}
@@ -90,7 +84,7 @@ export const SelectContent = React.forwardRef<
       ref={ref}
       position={position}
       className={cn(
-        "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-lift data-[state=open]:animate-scale-in",
+        "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded border border-border bg-popover text-popover-foreground shadow-paper data-[state=open]:animate-scale-in",
         position === "popper" && "mt-1 w-full min-w-[var(--radix-select-trigger-width)]",
         className
       )}
@@ -109,17 +103,18 @@ export const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex w-full cursor-default select-none items-center rounded-xs py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
     {...props}
   >
-    <span className="absolute left-2 flex size-4 items-center justify-center">
+    <span className="absolute left-2 flex size-4 items-center justify-center text-primary">
       <SelectPrimitive.ItemIndicator>
-        <Check className="size-4" />
+        <Check className="size-3.5" />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
 ));
 SelectItem.displayName = "SelectItem";
+

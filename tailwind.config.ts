@@ -11,8 +11,9 @@ const config: Config = {
     container: { center: true, padding: "1.5rem" },
     extend: {
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
-        display: ["Plus Jakarta Sans", "Inter", "ui-sans-serif", "system-ui", "Segoe UI", "sans-serif"],
+        serif: ["Newsreader", "Georgia", "Cambria", "Times New Roman", "serif"],
+        sans: ["'Source Sans 3'", "Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        display: ["Newsreader", "Georgia", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -32,26 +33,27 @@ const config: Config = {
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 1px)",
+        sm: "calc(var(--radius) - 2px)",
       },
       keyframes: {
-        "fade-up": { from: { opacity: "0", transform: "translateY(10px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        "fade-up": { from: { opacity: "0", transform: "translateY(8px)" }, to: { opacity: "1", transform: "translateY(0)" } },
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
-        "scale-in": { from: { opacity: "0", transform: "scale(.96)" }, to: { opacity: "1", transform: "scale(1)" } },
+        "scale-in": { from: { opacity: "0", transform: "scale(.98)" }, to: { opacity: "1", transform: "scale(1)" } },
         "pulse-soft": { "0%, 100%": { opacity: "1" }, "50%": { opacity: ".55" } },
         shimmer: { from: { backgroundPosition: "200% 0" }, to: { backgroundPosition: "-200% 0" } },
       },
       animation: {
-        "fade-up": "fade-up .45s cubic-bezier(.16,1,.3,1) both",
-        "fade-in": "fade-in .4s ease both",
-        "scale-in": "scale-in .3s cubic-bezier(.16,1,.3,1) both",
+        "fade-up": "fade-up .4s cubic-bezier(.16,1,.3,1) both",
+        "fade-in": "fade-in .35s ease both",
+        "scale-in": "scale-in .25s cubic-bezier(.16,1,.3,1) both",
         "pulse-soft": "pulse-soft 1.6s ease-in-out infinite",
         shimmer: "shimmer 1.8s linear infinite",
       },
       boxShadow: {
-        soft: "0 1px 2px 0 hsl(var(--border) / .6), 0 8px 24px -12px hsl(var(--foreground) / .12)",
-        lift: "0 2px 4px 0 hsl(var(--border) / .6), 0 16px 40px -16px hsl(var(--foreground) / .18)",
+        soft: "0 1px 2px 0 rgba(37, 41, 37, 0.03)",
+        lift: "0 4px 20px -4px rgba(23, 61, 53, 0.08)",
+        paper: "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
       },
     },
   },

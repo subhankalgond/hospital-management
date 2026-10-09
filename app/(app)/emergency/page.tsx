@@ -54,51 +54,52 @@ export default function EmergencyCenter() {
   return (
     <>
       <PageHeader
+        kicker="Clinical Triage"
         title="Emergency Center"
-        description="Monitor emergency cases, triage priority, and patient flow."
+        description="Monitor active emergency cases, triage priorities, and clinical patient flow."
         actions={
-          <Button variant="gradient" onClick={() => setOpen(true)}>
-            <Siren /> New Emergency Case
+          <Button variant="default" onClick={() => setOpen(true)}>
+            <Siren className="size-4" /> New Emergency Case
           </Button>
         }
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Emergency cases" value={active.length} icon={<Siren className="size-5" />} tone="primary" sub="Currently open" />
-        <StatCard label="Critical" value={count((c) => c.priority === "CRITICAL")} icon={<AlertTriangle className="size-5" />} tone={count((c) => c.priority === "CRITICAL") ? "warning" : "default"} sub="Highest priority" />
-        <StatCard label="Urgent" value={count((c) => c.priority === "URGENT")} icon={<AlertTriangle className="size-5" />} sub="Seen within 30 min" />
-        <StatCard label="Waiting" value={count((c) => c.status === "waiting")} icon={<Users className="size-5" />} sub="Awaiting assessment" />
-        <StatCard label="In assessment" value={count((c) => c.status === "in-assessment" || c.status === "in-treatment")} icon={<Brain className="size-5" />} tone="primary" sub="With clinical team" />
+        <StatCard label="Emergency Cases" value={active.length} icon={<Siren className="size-4" />} tone="primary" sub="Currently open cases" />
+        <StatCard label="Critical" value={count((c) => c.priority === "CRITICAL")} icon={<AlertTriangle className="size-4" />} tone={count((c) => c.priority === "CRITICAL") ? "warning" : "default"} sub="Immediate priority" />
+        <StatCard label="Urgent" value={count((c) => c.priority === "URGENT")} icon={<AlertTriangle className="size-4" />} sub="Target < 30 min" />
+        <StatCard label="Waiting Queue" value={count((c) => c.status === "waiting")} icon={<Users className="size-4" />} sub="Awaiting assessment" />
+        <StatCard label="In Assessment" value={count((c) => c.status === "in-assessment" || c.status === "in-treatment")} icon={<Brain className="size-4" />} tone="primary" sub="With clinical team" />
       </div>
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Emergency queue</CardTitle>
+          <CardTitle>Active Triage Queue</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-2">
           {queue.length === 0 ? (
             <EmptyState
               emoji="🚑"
               title="No active emergency cases"
-              description="Registered cases appear here instantly, sorted by priority and arrival."
+              description="Registered cases appear here instantly, sorted by priority and arrival time."
               action={<Button onClick={() => setOpen(true)}>Register a case</Button>}
             />
           ) : (
             <div className="overflow-x-auto scrollbar-thin">
-              <table className="w-full text-sm">
+              <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-3 py-3 font-medium">Patient</th>
-                    <th className="px-3 py-3 font-medium">Priority</th>
-                    <th className="px-3 py-3 font-medium">Arrival</th>
-                    <th className="px-3 py-3 font-medium">Waiting</th>
-                    <th className="px-3 py-3 font-medium">Department</th>
-                    <th className="px-3 py-3 font-medium">Doctor</th>
-                    <th className="px-3 py-3 font-medium">Status</th>
-                    <th className="px-3 py-3" />
+                  <tr className="border-b border-border text-left uppercase tracking-wider text-muted-foreground font-semibold text-[11px]">
+                    <th className="px-3 py-2.5">Patient</th>
+                    <th className="px-3 py-2.5">Priority</th>
+                    <th className="px-3 py-2.5">Arrival</th>
+                    <th className="px-3 py-2.5">Wait Time</th>
+                    <th className="px-3 py-2.5">Department</th>
+                    <th className="px-3 py-2.5">Attending Doctor</th>
+                    <th className="px-3 py-2.5">Status</th>
+                    <th className="px-3 py-2.5" />
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-border/50">
                   {queue.map((c) => {
                     const p = c.patientId ? patients.find((x) => x.id === c.patientId) : undefined;
                     const doc = doctors.find((d) => d.id === c.assignedDoctorId);
@@ -106,33 +107,33 @@ export default function EmergencyCenter() {
                     return (
                       <tr
                         key={c.id}
-                        className="cursor-pointer border-b last:border-0 transition-colors hover:bg-muted/40"
+                        className="cursor-pointer transition-colors hover:bg-secondary/50"
                         onClick={() => router.push(`/emergency/${c.id}`)}
                       >
-                        <td className="px-3 py-3.5">
-                          <p className="font-medium">{casePatientName(c, p?.name)}</p>
-                          <p className="text-xs text-muted-foreground">
+                        <td className="px-3 py-3">
+                          <p className="font-serif text-base font-normal text-foreground">{casePatientName(c, p?.name)}</p>
+                          <p className="text-[11px] font-mono text-muted-foreground">
                             {c.id}
                             {p ? ` · ${ageFrom(p.dob)}y` : c.walkIn ? ` · ${(c.walkIn as { age?: number }).age ?? "?"}y` : ""}
                           </p>
                         </td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-3">
                           <Badge variant={priorityBadge[c.priority]}>{c.priority}</Badge>
                         </td>
-                        <td className="px-3 py-3.5 text-muted-foreground">
+                        <td className="px-3 py-3 text-muted-foreground font-mono">
                           {new Date(c.arrivalAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </td>
-                        <td className="px-3 py-3.5">
-                          <span className={cn("tabular-nums font-medium", wait >= 30 && c.priority === "CRITICAL" ? "text-destructive" : wait >= 60 ? "text-warning" : "")}>
+                        <td className="px-3 py-3">
+                          <span className={cn("tabular-nums font-mono font-medium", wait >= 30 && c.priority === "CRITICAL" ? "text-destructive" : wait >= 60 ? "text-warning" : "")}>
                             {wait < 60 ? `${wait} min` : `${Math.floor(wait / 60)}h ${wait % 60}m`}
                           </span>
                         </td>
-                        <td className="px-3 py-3.5 text-muted-foreground">{c.department || "—"}</td>
-                        <td className="px-3 py-3.5 text-muted-foreground">{doc?.name ?? "Unassigned"}</td>
-                        <td className="px-3 py-3.5">
+                        <td className="px-3 py-3 text-muted-foreground">{c.department || "—"}</td>
+                        <td className="px-3 py-3 text-muted-foreground font-serif">{doc?.name ?? "Unassigned"}</td>
+                        <td className="px-3 py-3">
                           <Badge variant={statusVariant[c.status]}>{statusLabel[c.status]}</Badge>
                         </td>
-                        <td className="px-3 py-3.5 text-right">
+                        <td className="px-3 py-3 text-right">
                           <ChevronRight className="ml-auto size-4 text-muted-foreground" />
                         </td>
                       </tr>

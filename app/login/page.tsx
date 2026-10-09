@@ -92,61 +92,49 @@ export default function LoginPage() {
   }, [bootState, session, router, nextPath]);
 
   return (
-    <div className="grid min-h-dvh lg:grid-cols-2">
-      {/* Brand panel */}
-      <div className="gradient-brand relative hidden flex-col justify-between p-10 text-white lg:flex">
+    <div className="grid min-h-dvh lg:grid-cols-2 bg-background">
+      {/* Brand masthead panel */}
+      <div className="bg-[#173D35] relative hidden flex-col justify-between p-12 text-[#F7F5F0] lg:flex border-r border-[#173D35]">
         <div className="flex items-center gap-3">
-          <HeartMark className="size-9" />
-          <span className="font-display text-xl font-bold">CarePulse</span>
+          <HeartMark className="size-8 text-[#F7F5F0]" />
+          <div>
+            <span className="font-serif text-2xl font-normal tracking-tight text-[#F7F5F0] block">CarePulse</span>
+            <span className="text-[9px] uppercase font-semibold tracking-widest text-[#F7F5F0]/70 block font-sans">Hospital Operations</span>
+          </div>
         </div>
 
-        <div className="relative">
-          <motion.h1
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight text-balance"
-          >
+        <div className="relative my-auto py-8 max-w-lg">
+          <p className="uppercase text-[11px] font-semibold tracking-widest text-[#F7F5F0]/70 mb-3 font-sans">Editorial Clinical Platform</p>
+          <h1 className="font-serif text-5xl font-normal leading-[1.15] tracking-tight text-[#F7F5F0]">
             The heartbeat of modern care.
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-4 max-w-md text-lg text-white/70"
-          >
-            One platform for scheduling, records, wards, labs and billing — for patients,
-            clinicians and administrators.
-          </motion.p>
+          </h1>
+          <p className="mt-4 text-base text-[#F7F5F0]/85 leading-relaxed font-sans">
+            A calm, structured digital publication for hospital operations — unifying scheduling, health records, wards, laboratories, and billing.
+          </p>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mt-10 grid grid-cols-3 gap-3"
-          >
+          <div className="mt-8 grid grid-cols-3 gap-4 border-t border-[#F7F5F0]/20 pt-6">
             {[
-              { k: "3", v: "Account types" },
+              { k: "3", v: "Account Types" },
               { k: "10", v: "Departments" },
-              { k: "24/7", v: "On-call coverage" },
+              { k: "24/7", v: "Clinical Coverage" },
             ].map((s) => (
-              <div key={s.v} className="rounded-xl border border-white/15 bg-white/5 p-4 backdrop-blur-sm">
-                <p className="font-display text-2xl font-bold">{s.k}</p>
-                <p className="mt-0.5 text-xs text-white/60">{s.v}</p>
+              <div key={s.v}>
+                <p className="font-serif text-3xl font-normal text-[#F7F5F0]">{s.k}</p>
+                <p className="mt-1 text-[11px] uppercase font-semibold tracking-wider text-[#F7F5F0]/70 font-sans">{s.v}</p>
               </div>
             ))}
-          </motion.div>
+          </div>
         </div>
 
-        <p className="text-xs text-white/40">© 2026 CarePulse Health Systems</p>
+        <p className="text-xs text-[#F7F5F0]/60 font-sans">© 2026 CarePulse Health Systems · Editorial Edition</p>
       </div>
 
       {/* Form panel */}
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md animate-fade-up">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <HeartMark className="size-8 text-primary" />
-            <span className="font-display text-xl font-bold">CarePulse</span>
+            <HeartMark className="size-7 text-primary" />
+            <span className="font-serif text-xl font-normal tracking-tight">CarePulse</span>
           </div>
 
           <AnimatePresence mode="wait" initial={false}>
@@ -156,7 +144,7 @@ export default function LoginPage() {
                 initial={{ opacity: 0, x: 12 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -12 }}
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               >
                 <SignInForm
                   nextPath={nextPath}
@@ -169,7 +157,7 @@ export default function LoginPage() {
                 initial={{ opacity: 0, x: 12 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -12 }}
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               >
                 <SignUpWizard
                   onBack={() => setMode("signin")}
@@ -186,13 +174,17 @@ export default function LoginPage() {
 
 /* ─────────────────────────── Sign in ─────────────────────────── */
 
-function SignInForm({ onSwitch }: { nextPath: string | null; onSwitch: () => void }) {
+function SignInForm({ nextPath, onSwitch }: { nextPath: string | null; onSwitch: () => void }) {
   const signIn = useStore((s) => s.signIn);
+  const router = useRouter();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [showPw, setShowPw] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+
+  const destinationFor = (role: Role) =>
+    nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : ROLE_HOME[role];
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -203,20 +195,27 @@ function SignInForm({ onSwitch }: { nextPath: string | null; onSwitch: () => voi
     if (!res.ok) {
       setError(res.error ?? "Could not sign in.");
       setBusy(false);
+    } else {
+      const s = useStore.getState().session;
+      if (s) {
+        router.replace(destinationFor(s.role));
+      } else {
+        setBusy(false);
+      }
     }
-    // on success the session effect in the parent redirects
   }
 
   return (
     <>
-      <h2 className="font-display text-3xl font-bold tracking-tight">Welcome back</h2>
-      <p className="mt-2 text-muted-foreground">Sign in to your CarePulse account.</p>
+      <p className="editorial-kicker mb-1">Account Authentication</p>
+      <h2 className="font-serif text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Welcome back</h2>
+      <p className="mt-2 text-sm text-muted-foreground">Sign in to access your CarePulse dashboard.</p>
 
       <form onSubmit={submit} className="mt-8 space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">Email address</Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70 pointer-events-none" />
             <Input
               id="email"
               type="email"
@@ -225,14 +224,14 @@ function SignInForm({ onSwitch }: { nextPath: string | null; onSwitch: () => voi
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-9"
+              className="pl-10"
             />
           </div>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="password">Password</Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70 pointer-events-none" />
             <Input
               id="password"
               type={showPw ? "text" : "password"}
@@ -241,7 +240,7 @@ function SignInForm({ onSwitch }: { nextPath: string | null; onSwitch: () => voi
               placeholder="Your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-9 pr-10"
+              className="pl-10 pr-10"
             />
             <button
               type="button"

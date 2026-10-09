@@ -4,22 +4,22 @@ import { cn } from "@/lib/utils";
 
 /* ─────────────── Button ─────────────── */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background disabled:pointer-events-none disabled:opacity-50 active:scale-[.98] [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded text-sm font-medium font-sans transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[.99] [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90",
-        gradient: "gradient-primary text-white shadow-md hover:opacity-95 hover:shadow-lg",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/70",
-        outline: "border border-input bg-card hover:bg-accent hover:text-accent-foreground",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        default: "bg-primary text-primary-foreground shadow-paper hover:bg-primary/90",
+        gradient: "bg-primary text-primary-foreground shadow-paper hover:bg-primary/90",
+        secondary: "border border-border bg-secondary text-secondary-foreground hover:bg-accent",
+        outline: "border border-border bg-card text-foreground hover:bg-secondary hover:text-foreground",
+        ghost: "hover:bg-secondary hover:text-foreground",
+        destructive: "bg-destructive text-destructive-foreground shadow-paper hover:bg-destructive/90",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-12 rounded-xl px-6 text-base",
+        default: "h-9 px-4 py-2 text-sm",
+        sm: "h-7 rounded-sm px-2.5 text-xs",
+        lg: "h-11 rounded px-6 text-base font-semibold",
         icon: "h-9 w-9",
       },
     },
@@ -43,7 +43,7 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
   return (
     <div
       className={cn(
-        "rounded-2xl border bg-card text-card-foreground shadow-soft transition-all duration-300",
+        "rounded border border-border bg-card text-card-foreground shadow-paper transition-all duration-200",
         className
       )}
       {...props}
@@ -52,35 +52,35 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
 }
 
 export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col space-y-1 p-6 pb-3", className)} {...props} />;
+  return <div className={cn("flex flex-col space-y-1 p-5 pb-3 border-b border-border/40", className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("font-semibold leading-none tracking-tight", className)} {...props} />;
+  return <h3 className={cn("font-serif text-lg font-normal tracking-tight text-foreground", className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
+  return <p className={cn("text-xs text-muted-foreground leading-relaxed", className)} {...props} />;
 }
 
 export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("p-6 pt-3", className)} {...props} />;
+  return <div className={cn("p-5 pt-4", className)} {...props} />;
 }
 
 /* ─────────────── Badge ─────────────── */
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors [&_svg]:size-3",
+  "inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] font-medium tracking-wide uppercase transition-colors [&_svg]:size-3",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary/10 text-primary",
-        secondary: "border-transparent bg-secondary text-secondary-foreground",
-        success: "border-transparent bg-success/15 text-success",
-        warning: "border-transparent bg-warning/15 text-warning",
-        destructive: "border-transparent bg-destructive/15 text-destructive",
-        outline: "text-muted-foreground",
-        sky: "border-transparent bg-sky-500/15 text-sky-600 dark:text-sky-400",
-        violet: "border-transparent bg-violet-500/15 text-violet-600 dark:text-violet-400",
+        default: "border-primary/20 bg-primary/10 text-primary",
+        secondary: "border-border bg-secondary text-secondary-foreground",
+        success: "border-success/30 bg-success/10 text-success dark:text-emerald-400",
+        warning: "border-warning/30 bg-warning/10 text-warning dark:text-amber-400",
+        destructive: "border-destructive/30 bg-destructive/10 text-destructive dark:text-rose-400",
+        outline: "border-border text-muted-foreground",
+        sky: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+        violet: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
       },
     },
     defaultVariants: { variant: "default" },
@@ -100,7 +100,7 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
   ({ className, ...props }, ref) => (
     <input
       className={cn(
-        "flex h-10 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-10 w-full rounded border border-border bg-card px-3.5 py-2 text-sm font-sans text-foreground transition-all placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       ref={ref}
@@ -114,7 +114,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
   ({ className, ...props }, ref) => (
     <textarea
       className={cn(
-        "flex min-h-[80px] w-full rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "flex min-h-[80px] w-full rounded border border-border bg-card px-3.5 py-2 text-sm font-sans text-foreground transition-all placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       ref={ref}
@@ -127,7 +127,7 @@ Textarea.displayName = "Textarea";
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
-      className={cn("text-sm font-medium leading-none text-foreground/90", className)}
+      className={cn("text-xs font-semibold uppercase tracking-wider text-muted-foreground leading-none font-sans select-none", className)}
       {...props}
     />
   );
@@ -135,12 +135,12 @@ export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLab
 
 /* ─────────────── Avatar ─────────────── */
 const avatarPalette = [
-  "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300",
-  "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300",
-  "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300",
-  "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
-  "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300",
-  "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+  "bg-[#E8D5C0] text-[#641E32] border border-[#A79A8C]",
+  "bg-sky-50 text-sky-900 border border-sky-200 dark:bg-sky-950 dark:text-sky-200 dark:border-sky-800",
+  "bg-emerald-50 text-emerald-900 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-800",
+  "bg-amber-50 text-amber-900 border border-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-800",
+  "bg-stone-100 text-stone-900 border border-stone-300 dark:bg-stone-800 dark:text-stone-200 dark:border-stone-700",
+  "bg-slate-100 text-slate-900 border border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700",
 ];
 
 export function Avatar({
@@ -156,8 +156,8 @@ export function Avatar({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full font-semibold select-none",
-        icon ? "h-10 w-10 [&_svg]:size-5" : "h-10 w-10 text-sm",
+        "inline-flex shrink-0 items-center justify-center rounded font-serif font-normal select-none tracking-tight",
+        icon ? "h-9 w-9 [&_svg]:size-4" : "h-9 w-9 text-xs",
         avatarPalette[hue],
         className
       )}
@@ -186,11 +186,11 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed py-14 text-center">
-      <div className="text-4xl" aria-hidden>{emoji}</div>
-      <p className="font-semibold">{title}</p>
-      {description && <p className="max-w-sm text-sm text-muted-foreground">{description}</p>}
-      {action && <div className="mt-2">{action}</div>}
+    <div className="flex flex-col items-center justify-center gap-2 rounded border border-dashed border-border py-12 px-4 text-center bg-card/40">
+      <div className="text-3xl opacity-80" aria-hidden>{emoji}</div>
+      <p className="font-serif text-base font-normal tracking-tight text-foreground">{title}</p>
+      {description && <p className="max-w-sm text-xs text-muted-foreground leading-relaxed">{description}</p>}
+      {action && <div className="mt-3">{action}</div>}
     </div>
   );
 }
@@ -200,7 +200,7 @@ export function Skeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "animate-pulse-soft rounded-lg bg-muted",
+        "animate-pulse-soft rounded bg-muted/70",
         className
       )}
     />
@@ -210,9 +210,9 @@ export function Skeleton({ className }: { className?: string }) {
 /* ─────────────── Progress ─────────────── */
 export function Progress({ value, className }: { value: number; className?: string }) {
   return (
-    <div className={cn("h-2 w-full overflow-hidden rounded-full bg-muted", className)}>
+    <div className={cn("h-1.5 w-full overflow-hidden rounded-xs bg-secondary border border-border/40", className)}>
       <div
-        className="h-full rounded-full bg-primary transition-all duration-500"
+        className="h-full bg-primary transition-all duration-500"
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
       />
     </div>
@@ -236,21 +236,21 @@ export function StatCard({
   className?: string;
 }) {
   const tones: Record<string, string> = {
-    default: "bg-muted text-muted-foreground",
-    primary: "bg-primary/10 text-primary",
-    warning: "bg-warning/15 text-warning",
-    success: "bg-success/15 text-success",
+    default: "bg-secondary text-muted-foreground border-border",
+    primary: "bg-primary/10 text-primary border-primary/20",
+    warning: "bg-warning/10 text-warning border-warning/20",
+    success: "bg-success/10 text-success border-success/20",
   };
   return (
-    <Card className={cn("group p-5 hover:shadow-lift hover:-translate-y-0.5", className)}>
+    <Card className={cn("group p-5 hover:border-primary/40 transition-colors", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-2xl font-bold tracking-tight tabular-nums">{value}</p>
-          {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
+          <p className="uppercase text-[11px] font-semibold tracking-wider text-muted-foreground">{label}</p>
+          <p className="font-serif text-3xl font-normal tracking-tight text-foreground tabular-nums">{value}</p>
+          {sub && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
         </div>
         {icon && (
-          <div className={cn("rounded-xl p-2.5 transition-transform group-hover:scale-110", tones[tone])}>
+          <div className={cn("rounded border p-2 text-xs transition-colors", tones[tone])}>
             {icon}
           </div>
         )}
@@ -258,3 +258,4 @@ export function StatCard({
     </Card>
   );
 }
+
