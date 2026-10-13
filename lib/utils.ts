@@ -33,16 +33,26 @@ export function todayISO() {
   return toISODate(new Date());
 }
 
+/** parse a date-only or full ISO timestamp safely; null when invalid */
+function parseDay(value: string | undefined | null): Date | null {
+  if (!value) return null;
+  const d = value.includes("T") ? new Date(value) : new Date(value + "T00:00:00");
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 export function dateLabel(iso: string) {
-  return fmtDate.format(new Date(iso + "T00:00:00"));
+  const d = parseDay(iso);
+  return d ? fmtDate.format(d) : "—";
 }
 
 export function dayLabel(iso: string) {
-  return fmtDay.format(new Date(iso + "T00:00:00"));
+  const d = parseDay(iso);
+  return d ? fmtDay.format(d) : "—";
 }
 
 export function longDayLabel(iso: string) {
-  return fmtLong.format(new Date(iso + "T00:00:00"));
+  const d = parseDay(iso);
+  return d ? fmtLong.format(d) : "—";
 }
 
 export function addDays(iso: string, days: number) {

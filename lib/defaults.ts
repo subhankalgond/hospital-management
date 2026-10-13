@@ -12,6 +12,20 @@ export const DEPARTMENTS: { name: string; fee: number; specialties: string[] }[]
   { name: "ENT", fee: 155, specialties: ["Otolaryngologist"] },
   { name: "Ophthalmology", fee: 160, specialties: ["Ophthalmologist"] },
   { name: "Gynecology", fee: 165, specialties: ["Gynecologist", "Obstetrician"] },
+  { name: "Urology", fee: 170, specialties: ["Urologist", "Andrologist"] },
+  { name: "Oncology", fee: 220, specialties: ["Medical Oncologist", "Radiation Oncologist"] },
+  { name: "Gastroenterology", fee: 185, specialties: ["Gastroenterologist", "Hepatologist"] },
+  { name: "Pulmonology", fee: 180, specialties: ["Pulmonologist", "Intensivist"] },
+  { name: "Nephrology", fee: 175, specialties: ["Nephrologist", "Dialysis Specialist"] },
+  { name: "Endocrinology", fee: 170, specialties: ["Endocrinologist", "Diabetologist"] },
+  { name: "Anesthesiology", fee: 150, specialties: ["Anesthesiologist", "Pain Management Specialist"] },
+  { name: "Radiology", fee: 140, specialties: ["Diagnostic Radiologist", "Interventional Radiologist"] },
+  { name: "Pathology", fee: 130, specialties: ["Pathologist", "Hematopathologist"] },
+  { name: "Emergency Medicine", fee: 200, specialties: ["Emergency Physician", "Trauma Specialist"] },
+  { name: "Physical Medicine", fee: 145, specialties: ["Physiatrist", "Rehabilitation Specialist"] },
+  { name: "Plastic Surgery", fee: 210, specialties: ["Plastic Surgeon", "Craniofacial Surgeon"] },
+  { name: "Rheumatology", fee: 175, specialties: ["Rheumatologist", "Immunologist"] },
+  { name: "Geriatrics", fee: 155, specialties: ["Geriatrician", "Palliative Care Specialist"] },
 ];
 
 export const DEPARTMENT_NAMES = DEPARTMENTS.map((d) => d.name);
