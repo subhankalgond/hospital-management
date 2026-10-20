@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, Phone, Mail, MapPin, ShieldCheck, Pill, Syringe } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MapPin, ShieldCheck, Pill, Syringe, History } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Avatar, Badge, Button, Card, CardContent, CardHeader, CardTitle, EmptyState } from "@/components/ui/primitives";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,6 +78,14 @@ export default function PatientChart({ params }: { params: { id: string } }) {
           </p>
         </CardContent>
       </Card>
+
+      <div className="mb-4 flex justify-end">
+        <Button variant="outline" size="sm">
+          <Link href={`/doctor/patients/${params.id}/history`} className="flex items-center gap-2">
+            <History className="size-4" /> Full history & filters
+          </Link>
+        </Button>
+      </div>
 
       <Tabs defaultValue="visits" className="mt-6">
         <TabsList>

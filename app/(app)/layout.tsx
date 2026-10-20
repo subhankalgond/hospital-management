@@ -13,10 +13,13 @@ import {
   CreditCard,
   FileHeart,
   FlaskConical,
+  History,
   Home,
   LogOut,
   Menu,
+  Mic,
   Stethoscope,
+  TrendingUp,
   Users,
   UserRound,
   Wallet,
@@ -38,25 +41,26 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "/patient", label: "Overview", icon: Home, roles: ["patient"] },
+  { href: "/patient/symptoms", label: "Symptom check", icon: Mic, roles: ["patient"] },
   { href: "/patient/appointments", label: "Appointments", icon: CalendarDays, roles: ["patient"] },
   { href: "/patient/records", label: "Health records", icon: FileHeart, roles: ["patient"] },
   { href: "/patient/billing", label: "Billing", icon: Wallet, roles: ["patient"] },
   { href: "/patient/profile", label: "Profile", icon: UserRound, roles: ["patient"] },
 
-  { href: "/doctor", label: "Today's queue", icon: Activity, roles: ["doctor"] },
+  { href: "/doctor", label: "Overview", icon: Home, roles: ["doctor"] },
   { href: "/doctor/patients", label: "Patients", icon: Users, roles: ["doctor"] },
   { href: "/doctor/schedule", label: "Schedule", icon: CalendarDays, roles: ["doctor"] },
 
-  { href: "/emergency", label: "Emergency Center", icon: AlertTriangle, roles: ["admin"] },
-  { href: "/beds", label: "Bed management", icon: BedDouble, roles: ["admin"] },
-  { href: "/ai", label: "AI Insights", icon: Brain, roles: ["admin", "doctor", "patient"] },
-
-  { href: "/admin", label: "Dashboard", icon: Home, roles: ["admin"] },
+  { href: "/admin", label: "Overview", icon: Home, roles: ["admin"] },
   { href: "/admin/appointments", label: "Appointments", icon: CalendarDays, roles: ["admin"] },
   { href: "/admin/staff", label: "Staff & doctors", icon: Stethoscope, roles: ["admin"] },
-  { href: "/admin/wards", label: "Wards & beds", icon: ClipboardPlus, roles: ["admin"] },
+  { href: "/admin/forecasting", label: "Forecasting", icon: TrendingUp, roles: ["admin"] },
+  { href: "/emergency", label: "Emergency Center", icon: AlertTriangle, roles: ["admin"] },
+  { href: "/beds", label: "Bed management", icon: BedDouble, roles: ["admin"] },
+  { href: "/admin/wards", label: "Wards", icon: ClipboardPlus, roles: ["admin"] },
   { href: "/admin/billing", label: "Billing", icon: CreditCard, roles: ["admin"] },
   { href: "/admin/labs", label: "Laboratory", icon: FlaskConical, roles: ["admin"] },
+  { href: "/ai", label: "AI Insights", icon: Brain, roles: ["admin", "doctor", "patient"] },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

@@ -138,6 +138,59 @@ Vercel; the repository is this codebase.
 
 ---
 
+## Patient symptom intake (voice + NLP) — v2 upgrade
+
+Patients describe symptoms in their own words at **Symptom Assessment**
+(`/patient/symptoms`):
+
+- **Voice-to-text** via the browser SpeechRecognition API (`en-US` plus
+  hi/ta/bn/mr/te Indian languages where the browser engine supports them),
+  with explicit permission handling, stop/restart, interim transcription,
+  an editable transcript before submission, and a typing fallback when the
+  browser or microphone is unavailable. No raw audio is stored or sent
+  anywhere.
+- **Multi-symptom analysis** (`lib/nlp/multi.ts`, version `multi-v1`): a
+  documented rules-based classifier that extracts each symptom, supports
+  **negation** ("I do not have a fever" is never treated as a symptom),
+  duration and severity, then evaluates the complete combination — not the
+  first keyword. Chest discomfort + breathing difficulty/sweating triggers
+  **immediate emergency guidance (call 112 in India)** before any routine
+  recommendation; routine cases get a primary department, alternatives where
+  symptoms span systems, and transparent follow-up questions.
+- **Real doctor recommendation**: the suggested doctor is looked up from the
+  hospital's own database by specialty — never invented. If no matching
+  doctor exists, the UI says so honestly.
+- **Persistence**: every assessment links to the signed-in patient with
+  urgency, extracted symptoms, suggested department, ruleset version and
+  timestamp; access is doctor/admin-scoped server-side with audit logging
+  (`lib/server/audit.ts`, `app/api/symptom-assessments`).
+
+### Patient visit history
+
+Doctors and admins get a full visit timeline at
+`/doctor/patients/[id]/history`: working week/month/year/last-year/custom/all
+filters computed from actual encounters, real totals (visits total, this
+week/month/year, most recent visit), and per-visit detail that clearly
+separates **patient-reported transcripts**, **AI suggestions** and
+**clinician-confirmed** findings. Previous encounters are never overwritten
+when a new visit is recorded.
+
+### Hospital forecasting (admin)
+
+`/admin/forecasting` shows the LOS model status (MAE/R², dataset size,
+training date), a **7-day bed demand forecast derived from historical
+admissions**, and a staffing pressure view. When historical data inside the
+app is insufficient, the page says so explicitly and shows only real
+operational statistics — no invented predictions.
+
+### Concurrency-safe bed assignment
+
+Bed occupancy in `/api/beds/states` uses a conditional optimistic update: two
+staff assigning the same bed simultaneously get one success and one explicit
+409 — no double-booking.
+
+---
+
 ## AI safety notices
 
 All AI features are **decision-support demonstrations** and are labeled as
@@ -148,9 +201,9 @@ pre-fills the user can change).
 
 ## Modules
 
-- **Patient portal** — doctors, appointments with slot picking, health records, billing, profile
-- **Doctor portal** — today's queue, patients, schedule with leave requests (1-day rule)
-- **Admin** — dashboard, appointments, staff, wards, billing, laboratory
+- **Patient portal** — doctors, appointments with slot picking, health records, voice symptom assessment, billing, profile
+- **Doctor portal** — today's queue, patients with full visit history, schedule with leave requests (1-day rule)
+- **Admin** — dashboard, appointments, staff, wards, forecasting, billing, laboratory
 - **Emergency Center** — walk-in/registered case intake, validated vitals, rule-based AI-assisted triage (DEMO decision-support) with mandatory staff confirmation, priority queue, case timeline, bed recommendation
 - **Bed management** — live bed grid, full lifecycle (available → reserved → occupied → discharge-pending → cleaning → inspection → available, plus maintenance), audit trail, ML discharge estimates
 - **AI Insights** — symptom router playground, LOS forecaster, FHIR API explorer

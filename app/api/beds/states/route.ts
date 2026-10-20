@@ -1,4 +1,5 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
+import type { AnyDb } from "@/db";
 import { getDb } from "@/db";
 import { beds, bedAudit } from "@/db/schema";
 import { json, apiError, readJson, newId, requireAccount } from "@/lib/server/api";
@@ -71,6 +72,8 @@ export async function POST(req: Request) {
     return apiError(`Cannot ${body.action.replace(/-/g, " ")} a bed that is ${current}.`, 409);
   }
 
+  let conflictingState: string | null = null;
+
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = { lastStatusChange: now };
   let to: BedStatus = current;
@@ -141,19 +144,54 @@ export async function POST(req: Request) {
     }
   }
 
-  await db.update(beds).set(patch).where(eq(beds.id, bed.id));
+  // drizzle's postgres-js transaction uses SAVEPOINT-style transactions;
+  // the AnyDb alias from db/index.ts keeps the callback's tx loosely typed —
+  // with the same update/insert API as the normal db handle.
+  await (db as AnyDb).transaction(async (tx: AnyDb) => {
+    // Re-read the bed INSIDE the transaction with a row lock (FOR UPDATE) so
+    // two admins assigning the same bed concurrently cannot both succeed —
+    // the second one sees the already-updated status and gets a 409.
+    // Optimistic concurrency: the UPDATE itself carries the expected status
+    // so two racing requests cannot both win — the row only moves if it is
+    // still in the state validated above. If it moved meanwhile (0 rows
+    // updated) we report a conflict instead of overwriting the other admin's
+    // assignment.
+    const updated = await tx
+      .update(beds)
+      .set(patch)
+      .where(and(eq(beds.id, bed.id), eq(beds.status, current)));
+    const rowCount = updated.rowCount ?? 0;
+    if (rowCount === 0) {
+      conflictingState = "changed concurrently";
+      throw new Error("BED_CONFLICT");
+    }
 
-  await db.insert(bedAudit).values({
-    id: newId("BA-", 8),
-    bedId: bed.id,
-    bedLabel: bed.label,
-    fromStatus: current,
-    toStatus: to,
-    changedBy: guard.account.id,
-    changedByName: guard.account.name,
-    reason: reason || null,
-    at: now,
+    await tx.insert(bedAudit).values({
+      id: newId("BA-", 8),
+      bedId: bed.id,
+      bedLabel: bed.label,
+      fromStatus: current,
+      toStatus: to,
+      changedBy: guard.account.id,
+      changedByName: guard.account.name,
+      reason: reason || null,
+      at: now,
+    });
+  }).catch((err: unknown) => {
+    if (conflictingState || (err instanceof Error && err.message === "BED_CONFLICT")) {
+      conflictingState = conflictingState ?? "changed";
+    } else {
+      throw err;
+    }
   });
+
+  if (conflictingState) {
+    return apiError(
+      "Bed status changed while you were working — refresh and retry (another admin acted on this bed).",
+      409
+    );
+  }
 
   return json({ ok: true, status: to });
 }
+

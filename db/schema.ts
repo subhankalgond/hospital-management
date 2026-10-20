@@ -262,3 +262,68 @@ export const bedAudit = pgTable(
 );
 
 export type BedAuditRow = typeof bedAudit.$inferSelect;
+
+/* ─────────────── Symptom Assessments (NLP intake) ─────────────── */
+
+/**
+ * One submitted symptom-intake assessment. The raw patient-confirmed
+ * transcript is stored verbatim (edit history preserved as `finalText`);
+ * inferences are stored with their engine version so the routing logic can
+ * be audited/regraded later. Never reused as training data without consent.
+ */
+export const symptomAssessments = pgTable(
+  "symptom_assessments",
+  {
+    id: text("id").primaryKey(), // SA-XXXXXX
+    patientId: text("patient_id").notNull(), // required: accounts.patientId unless staff-supplied
+    doctorId: text("doctor_id"), // recommended doctor, if any matched
+    /** patient-confirmed text, verbatim */
+    transcript: text("transcript").notNull(),
+    /** true if voice input was used for the initial draft */
+    inputMode: text("input_mode").notNull().default("text"), // text | voice
+    /** structured, negation-aware extraction */
+    extracted: jsonb("extracted").notNull().default({}),
+    suggestedDepartment: text("suggested_department").notNull(),
+    alternativeDepartments: jsonb("alternative_departments").notNull().default([]),
+    urgency: text("urgency").notNull().default("routine"), // emergency | urgent | routine
+    urgencyNote: text("urgency_note").notNull().default(""),
+    followUpQuestions: jsonb("follow_up_questions").notNull().default([]),
+    /** engine name + version, e.g. "carepulse-router-v2" */
+    engine: text("engine").notNull(),
+    /** clinician review outcome (filled later by staff) */
+    reviewOutcome: text("review_outcome"), // agreed | changed | dismissed | null
+    reviewNote: text("review_note"),
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: text("reviewed_at"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    patientIdx: index("symptom_assessments_patient_idx").on(t.patientId, t.createdAt),
+  })
+);
+
+export type SymptomAssessmentRow = typeof symptomAssessments.$inferSelect;
+
+/* ─────────────── Audit log (sensitive-record access & changes) ─────────────── */
+
+/** Who viewed or changed what. Clinical pages call /api/audit on open. */
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: text("id").primaryKey(),
+    actorId: text("actor_id").notNull(),
+    actorName: text("actor_name").notNull().default(""),
+    actorRole: text("actor_role").notNull(),
+    action: text("action").notNull(), // view | create | update | delete | login | logout
+    entity: text("entity").notNull(), // e.g. "patient-history", "symptom-assessment", "bed"
+    entityId: text("entity_id"),
+    detail: text("detail").notNull().default(""),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    entityIdx: index("audit_logs_entity_idx").on(t.entity, t.entityId),
+    actorIdx: index("audit_logs_actor_idx"),
+  })
+);
+
+export type AuditLogRow = typeof auditLogs.$inferSelect;
