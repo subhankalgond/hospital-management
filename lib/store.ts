@@ -152,10 +152,10 @@ interface State {
 
   // appointments
   bookAppointment: (input: NewAppointmentInput) => Promise<Appointment | null>;
-  rescheduleAppointment: (id: string, date: string, time: string) => Promise<void>;
+  rescheduleAppointment: (id: string, date: string, time: string) => Promise<boolean>;
   cancelAppointment: (id: string) => Promise<void>;
-  confirmAppointment: (id: string) => Promise<void>;
-  markNoShow: (id: string) => Promise<void>;
+  confirmAppointment: (id: string) => Promise<boolean>;
+  markNoShow: (id: string) => Promise<boolean>;
   setQueueStatus: (id: string, status: VisitStatus) => Promise<void>;
 
   // slots — computed from the server-synced appointments; the server is the
@@ -168,15 +168,15 @@ interface State {
 
   // billing
   createInvoice: (input: NewInvoiceInput) => Promise<void>;
-  payInvoice: (id: string) => Promise<void>;
+  payInvoice: (id: string) => Promise<boolean>;
 
   // labs
   createLab: (input: NewLabInput) => Promise<void>;
-  setLabStatus: (id: string, status: LabRequest["status"], result?: string) => Promise<void>;
+  setLabStatus: (id: string, status: LabRequest["status"], result?: string) => Promise<boolean>;
 
   // wards
-  assignBed: (wardId: string, roomId: string, bedId: string, patientId: string) => Promise<void>;
-  dischargeBed: (wardId: string, roomId: string, bedId: string) => Promise<void>;
+  assignBed: (wardId: string, roomId: string, bedId: string, patientId: string) => Promise<boolean>;
+  dischargeBed: (wardId: string, roomId: string, bedId: string) => Promise<boolean>;
 
   // doctors
   setDoctorOnCall: (doctorId: string, onCall: boolean) => Promise<void>;
@@ -207,7 +207,7 @@ interface State {
   updatePatientProfile: (
     patientId: string,
     patch: Partial<Pick<Patient, "phone" | "address" | "bloodGroup" | "emergencyContact" | "allergies" | "conditions" | "insurance">>
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 
   // legacy import
   importLegacySnapshot: () => Promise<{ ok: boolean; error?: string }>;
@@ -552,10 +552,11 @@ export const useStore = create<State>()((set, get) => ({
     const res = await apiPatch(API.appointment(id), { action: "reschedule", date, time });
     if (!res.ok) {
       get().toast({ title: "Could not reschedule", description: res.data?.error, variant: "destructive" });
-      return;
+      return false;
     }
     await get().refresh();
     get().toast({ title: "Appointment rescheduled", description: `Moved to ${date} at ${time}.`, variant: "success" });
+    return true;
   },
 
   cancelAppointment: async (id) => {
@@ -572,20 +573,22 @@ export const useStore = create<State>()((set, get) => ({
     const res = await apiPatch(API.appointment(id), { action: "confirm" });
     if (!res.ok) {
       get().toast({ title: "Could not confirm", description: res.data?.error, variant: "destructive" });
-      return;
+      return false;
     }
     await get().refresh();
     get().toast({ title: "Appointment confirmed", variant: "success" });
+    return true;
   },
 
   markNoShow: async (id) => {
     const res = await apiPatch(API.appointment(id), { action: "no-show" });
     if (!res.ok) {
       get().toast({ title: "Could not update", description: res.data?.error, variant: "destructive" });
-      return;
+      return false;
     }
     await get().refresh();
     get().toast({ title: "Marked as no-show" });
+    return true;
   },
 
   setQueueStatus: async (id, status) => {
@@ -688,10 +691,11 @@ export const useStore = create<State>()((set, get) => ({
     const res = await apiPost(API.payInvoice(id));
     if (!res.ok) {
       get().toast({ title: "Payment failed", description: res.data?.error, variant: "destructive" });
-      return;
+      return false;
     }
     await get().refresh();
     get().toast({ title: `Payment received for ${id}`, variant: "success" });
+    return true;
   },
 
   // ───────────────── labs ─────────────────
@@ -709,10 +713,11 @@ export const useStore = create<State>()((set, get) => ({
     const res = await apiPatch(API.lab(id), { status, result });
     if (!res.ok) {
       get().toast({ title: "Could not update lab", description: res.data?.error, variant: "destructive" });
-      return;
+      return false;
     }
     await get().refresh();
     get().toast({ title: `Lab ${id} → ${status}`, variant: "success" });
+    return true;
   },
 
   // ───────────────── wards ─────────────────
@@ -720,20 +725,22 @@ export const useStore = create<State>()((set, get) => ({
     const res = await apiPost(API.beds, { action: "assign", wardId, roomId, bedId, patientId });
     if (!res.ok) {
       get().toast({ title: "Could not assign bed", description: res.data?.error, variant: "destructive" });
-      return;
+      return false;
     }
     await get().refresh();
     get().toast({ title: "Patient admitted", variant: "success" });
+    return true;
   },
 
   dischargeBed: async (wardId, roomId, bedId) => {
     const res = await apiPost(API.beds, { action: "discharge", wardId, roomId, bedId });
     if (!res.ok) {
       get().toast({ title: "Could not discharge", description: res.data?.error, variant: "destructive" });
-      return;
+      return false;
     }
     await get().refresh();
     get().toast({ title: "Patient discharged" });
+    return true;
   },
 
   // ───────────────── doctors ─────────────────
@@ -753,10 +760,11 @@ export const useStore = create<State>()((set, get) => ({
     const res = await apiPatch(API.patient(patientId), patch);
     if (!res.ok) {
       get().toast({ title: "Could not update profile", description: res.data?.error, variant: "destructive" });
-      return;
+      return false;
     }
     await get().refresh();
     get().toast({ title: "Profile updated", variant: "success" });
+    return true;
   },
 
   // ───────────────── leaves ─────────────────

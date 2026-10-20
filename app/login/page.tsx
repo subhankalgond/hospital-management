@@ -126,7 +126,11 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-xs text-[#F7F5F0]/60 font-sans">© 2026 CarePulse Health Systems · Editorial Edition</p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#F7F5F0]/60 font-sans">
+          <span>© 2026 CarePulse Health Systems · Editorial Edition</span>
+          <a href="/privacy" className="underline underline-offset-2 hover:text-[#F7F5F0]">Privacy Policy</a>
+          <a href="/terms" className="underline underline-offset-2 hover:text-[#F7F5F0]">Terms</a>
+        </div>
       </div>
 
       {/* Form panel */}

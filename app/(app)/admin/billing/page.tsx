@@ -19,6 +19,7 @@ export default function AdminBilling() {
   const patients = useStore((s) => s.patients);
   const payInvoice = useStore((s) => s.payInvoice);
   const [filter, setFilter] = React.useState<InvoiceStatus | "all">("all");
+  const [payingId, setPayingId] = React.useState<string | null>(null);
 
   const filtered = invoices
     .filter((i) => (filter === "all" ? true : i.status === filter))
@@ -92,7 +93,22 @@ export default function AdminBilling() {
                     <td className="px-6 py-3.5"><InvoiceStatusBadge status={inv.status} /></td>
                     <td className="px-6 py-3.5 text-right">
                       {inv.status !== "paid" ? (
-                        <Button size="sm" variant="outline" onClick={() => payInvoice(inv.id)}>Mark paid</Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={payingId === inv.id || (payingId !== null && payingId !== inv.id)}
+                          onClick={async () => {
+                            if (payingId) return;
+                            setPayingId(inv.id);
+                            try {
+                              await payInvoice(inv.id);
+                            } finally {
+                              setPayingId(null);
+                            }
+                          }}
+                        >
+                          {payingId === inv.id ? "Marking paid…" : "Mark paid"}
+                        </Button>
                       ) : (
                         <Badge variant="success">✓ Settled</Badge>
                       )}

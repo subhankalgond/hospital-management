@@ -17,6 +17,7 @@ export default function AdminWards() {
 
   const [admitBed, setAdmitBed] = React.useState<{ wardId: string; roomId: string; bedId: string; label: string } | null>(null);
   const [selectedPatient, setSelectedPatient] = React.useState("");
+  const [dismissing, setDismissing] = React.useState(false);
 
   const admittedIds = new Set(wards.flatMap((w) => w.rooms.flatMap((r) => r.beds.flatMap((b) => (b.patientId ? [b.patientId] : [])))));
   const availablePatients = patients.filter((p) => !admittedIds.has(p.id));
@@ -97,7 +98,16 @@ export default function AdminWards() {
                                 size="sm"
                                 variant="ghost"
                                 className="text-destructive"
-                                onClick={() => dischargeBed(w.id, room.id, bed.id)}
+                                disabled={dismissing}
+                                onClick={async () => {
+                                  if (dismissing) return;
+                                  setDismissing(true);
+                                  try {
+                                    await dischargeBed(w.id, room.id, bed.id);
+                                  } finally {
+                                    setDismissing(false);
+                                  }
+                                }}
                               >
                                 <LogOut /> Discharge
                               </Button>
@@ -152,14 +162,23 @@ export default function AdminWards() {
                 variant="gradient"
                 className="w-full"
                 size="lg"
-                disabled={!selectedPatient}
-                onClick={() => {
-                  if (!admitBed || !selectedPatient) return;
-                  assignBed(admitBed.wardId, admitBed.roomId, admitBed.bedId, selectedPatient);
-                  setAdmitBed(null);
+                disabled={!selectedPatient || dismissing}
+                onClick={async () => {
+                  if (!admitBed || !selectedPatient || dismissing) return;
+                  setDismissing(true);
+                  try {
+                    // wait for the API; close the dialog only on confirmed success
+                    const ok = await assignBed(admitBed.wardId, admitBed.roomId, admitBed.bedId, selectedPatient);
+                    if (ok) {
+                      setAdmitBed(null);
+                      setSelectedPatient("");
+                    }
+                  } finally {
+                    setDismissing(false);
+                  }
                 }}
               >
-                Confirm admission
+                {dismissing ? "Admitting…" : "Confirm admission"}
               </Button>
             </div>
           )}

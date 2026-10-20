@@ -38,6 +38,7 @@ export default function AdminAppointments() {
   const [date, setDate] = React.useState(() => new Date().toISOString().slice(0, 10));
   const [reason, setReason] = React.useState("");
   const [slot, setSlot] = React.useState<string | null>(null);
+  const [booking, setBooking] = React.useState(false);
   const slots = doctorId && date ? slotsFor(doctorId, date) : [];
   React.useEffect(() => setSlot(null), [doctorId, date]);
 
@@ -51,14 +52,23 @@ export default function AdminAppointments() {
     })
     .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
 
-  function book() {
-    if (!patientId || !doctorId || !slot || !reason.trim()) return;
-    bookAppointment({ patientId, doctorId, date, time: slot, reason: reason.trim() });
-    setOpen(false);
-    setPatientId("");
-    setDoctorId("");
-    setReason("");
-    setSlot(null);
+  async function book() {
+    if (!patientId || !doctorId || !slot || !reason.trim() || booking) return;
+    setBooking(true);
+    try {
+      // wait for the real API result: on failure the dialog stays open and all
+      // entered values are preserved so the user only fixes what's invalid.
+      const created = await bookAppointment({ patientId, doctorId, date, time: slot, reason: reason.trim() });
+      if (created) {
+        setOpen(false);
+        setPatientId("");
+        setDoctorId("");
+        setReason("");
+        setSlot(null);
+      }
+    } finally {
+      setBooking(false);
+    }
   }
 
   return (
@@ -135,8 +145,8 @@ export default function AdminAppointments() {
                     <Label htmlFor="ad-reason">Reason</Label>
                     <Input id="ad-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason for visit" />
                   </div>
-                  <Button variant="gradient" className="w-full" size="lg" disabled={!patientId || !doctorId || !slot || !reason.trim()} onClick={book}>
-                    Confirm booking
+                  <Button variant="gradient" className="w-full" size="lg" disabled={!patientId || !doctorId || !slot || !reason.trim() || booking} onClick={book}>
+                    {booking ? "Booking…" : "Confirm booking"}
                   </Button>
                 </div>
               </DialogContent>

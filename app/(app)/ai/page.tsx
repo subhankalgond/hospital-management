@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Brain, Loader2, Route, Stethoscope, FileJson, AlertTriangle, Info } from "lucide-react";
+import { Brain, Loader2, Route, Stethoscope, AlertTriangle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
   Badge,
@@ -312,82 +312,6 @@ function SymptomRouter() {
   );
 }
 
-/* ═══════════════════════ Tab 3 — FHIR Explorer ═══════════════════════ */
-
-function FhirExplorer() {
-  const [resource, setResource] = React.useState("Patient");
-  const [query, setQuery] = React.useState("");
-  const [data, setData] = React.useState<unknown>(null);
-  const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState("");
-
-  async function run() {
-    setBusy(true);
-    setError("");
-    try {
-      const qs = query.trim() ? `?${query.trim().replace(/^\?/, "")}` : "";
-      const res = await fetch(`/api/fhir/${resource}${qs}`);
-      const json = await res.json();
-      if (!res.ok && json.resourceType !== "OperationOutcome") throw new Error(`HTTP ${res.status}`);
-      setData(json);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Fetch failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><FileJson className="size-4 text-primary" /> FHIR R4 API explorer</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-[200px_1fr_auto]">
-            <Select value={resource} onValueChange={(v) => { setResource(v); setData(null); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="metadata">CapabilityStatement</SelectItem>
-                <SelectItem value="Patient">Patient</SelectItem>
-                <SelectItem value="Appointment">Appointment</SelectItem>
-                <SelectItem value="Observation">Observation</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={resource === "Patient" ? "?name=… or ?email=…" : resource === "Observation" ? "?patient=<id>&code=8867-4" : "?patient=<id>&date=2026-09-20"}
-            />
-            <Button onClick={run} disabled={busy}>
-              {busy ? <Loader2 className="size-4 animate-spin" /> : <FileJson className="size-4" />}
-              Run query
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Endpoints: <code className="rounded bg-muted px-1">GET /api/fhir/metadata</code>,{" "}
-            <code className="rounded bg-muted px-1">GET/POST /api/fhir/Patient</code>,{" "}
-            <code className="rounded bg-muted px-1">GET /api/fhir/Patient/[id]</code>,{" "}
-            <code className="rounded bg-muted px-1">GET /api/fhir/Appointment</code>,{" "}
-            <code className="rounded bg-muted px-1">GET /api/fhir/Observation</code> — standard FHIR searchset Bundles.
-          </p>
-          {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>}
-        </CardContent>
-      </Card>
-
-      {data !== null && (
-        <Card>
-          <CardContent className="pt-4">
-            <pre className="max-h-[420px] overflow-auto rounded-xl bg-muted/70 p-4 text-xs leading-relaxed scrollbar-thin">
-              {JSON.stringify(data, null, 2)}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
 /* ═══════════════════════ Page ═══════════════════════ */
 
 export default function AiInsightsPage() {
@@ -399,12 +323,12 @@ export default function AiInsightsPage() {
     <div className="space-y-5">
       <PageHeader
         title="AI Insights"
-        description="Machine-learning decision support: stay forecasting, symptom routing, and interoperability."
+        description="Machine-learning decision support: stay forecasting and symptom routing."
       />
 
-      <div className="grid gap-3 sm:grid-cols-3">              <StatCard label="LOS model" value="MAE 1.25d" sub="RandomForest · R² 0.67" />
-              <StatCard label="Symptom router" value="90% held-out" sub="TF-IDF + anchors · 11 classes" />
-              <StatCard label="FHIR R4" value="5 resources" sub="Patient · Appointment · Observation" />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <StatCard label="LOS model" value="MAE 1.25d" sub="RandomForest · R² 0.67" />
+        <StatCard label="Symptom router" value="90% held-out" sub="TF-IDF + anchors · 11 classes" />
       </div>
 
       <Tabs defaultValue="symptoms">
@@ -413,18 +337,12 @@ export default function AiInsightsPage() {
           {(role === "admin" || role === "doctor") && (
             <TabsTrigger value="los"><Brain className="size-4" /> Stay forecast</TabsTrigger>
           )}
-          {role === "admin" && (
-            <TabsTrigger value="fhir"><FileJson className="size-4" /> FHIR explorer</TabsTrigger>
-          )}
         </TabsList>
         <TabsContent value="symptoms" className="mt-4">
           <SymptomRouter />
         </TabsContent>
         <TabsContent value="los" className="mt-4">
           {role === "admin" || role === "doctor" ? <LosPredictor /> : null}
-        </TabsContent>
-        <TabsContent value="fhir" className="mt-4">
-          {role === "admin" ? <FhirExplorer /> : null}
         </TabsContent>
       </Tabs>
     </div>

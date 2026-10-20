@@ -26,12 +26,15 @@ export default function PatientBilling() {
     .filter((i) => i.status === "paid")
     .reduce((s, i) => s + i.items.reduce((x, it) => x + it.amount, 0), 0);
 
-  function confirmPay(id: string) {
+  async function confirmPay(id: string) {
+    if (paying) return;
     setPaying(id);
-    setTimeout(() => {
-      payInvoice(id);
+    try {
+      // driver runs the real API call; spinner shows only while it is in flight
+      await      await payInvoice(id);
+    } finally {
       setPaying(null);
-    }, 900);
+    }
   }
 
   return (

@@ -158,6 +158,7 @@ function EditProfileDialog({
   const [ecName, setEcName] = React.useState(patient.emergencyContact.name);
   const [ecPhone, setEcPhone] = React.useState(patient.emergencyContact.phone);
   const [ecRelation, setEcRelation] = React.useState(patient.emergencyContact.relation);
+  const [saving, setSaving] = React.useState(false);
   const [allergies, setAllergies] = React.useState(patient.allergies.join(", "));
   const [conditions, setConditions] = React.useState(patient.conditions.join(", "));
 
@@ -176,22 +177,30 @@ function EditProfileDialog({
     }
   }, [open, patient]);
 
-  function save() {
-    const splitList = (s: string) =>
-      s
-        .split(",")
-        .map((x) => x.trim())
-        .filter(Boolean);
-    update(patient.id, {
-      phone: phone.trim(),
-      address: address.trim(),
-      bloodGroup: bloodGroup === "none" ? "" : bloodGroup,
-      insurance: { provider: insuranceProvider.trim(), number: insuranceNumber.trim() },
-      emergencyContact: { name: ecName.trim(), phone: ecPhone.trim(), relation: ecRelation.trim() },
-      allergies: splitList(allergies),
-      conditions: splitList(conditions),
-    });
-    onOpenChange(false);
+  async function save() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const splitList = (s: string) =>
+        s
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean);
+      // only close once the server has actually persisted the profile
+      const ok = await update(patient.id, {
+        phone: phone.trim(),
+        address: address.trim(),
+        bloodGroup: bloodGroup === "none" ? "" : bloodGroup,
+        insurance: { provider: insuranceProvider.trim(), number: insuranceNumber.trim() },
+        emergencyContact: { name: ecName.trim(), phone: ecPhone.trim(), relation: ecRelation.trim() },
+        allergies: splitList(allergies),
+        conditions: splitList(conditions),
+      });
+      if (ok) onOpenChange(false);
+      // on failure the dialog stays open with all edits intact; the store shows the error toast
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -256,8 +265,8 @@ function EditProfileDialog({
             </div>
           </div>
 
-          <Button variant="gradient" className="w-full" size="lg" onClick={save}>
-            Save changes
+          <Button variant="gradient" className="w-full" size="lg" disabled={saving} onClick={save}>
+            {saving ? "Saving…" : "Save changes"}
           </Button>
         </div>
       </DialogContent>

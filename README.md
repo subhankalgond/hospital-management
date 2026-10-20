@@ -206,4 +206,4 @@ pre-fills the user can change).
 - **Admin** — dashboard, appointments, staff, wards, forecasting, billing, laboratory
 - **Emergency Center** — walk-in/registered case intake, validated vitals, rule-based AI-assisted triage (DEMO decision-support) with mandatory staff confirmation, priority queue, case timeline, bed recommendation
 - **Bed management** — live bed grid, full lifecycle (available → reserved → occupied → discharge-pending → cleaning → inspection → available, plus maintenance), audit trail, ML discharge estimates
-- **AI Insights** — symptom router playground, LOS forecaster, FHIR API explorer
+- **AI Insights** — symptom router playground, LOS forecaster (FHIR R4 endpoints remain available programmatically at `/api/fhir/*`)

@@ -17,6 +17,7 @@ export default function AdminLabs() {
 
   const [resulting, setResulting] = React.useState<LabRequest | null>(null);
   const [resultText, setResultText] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
 
   const requested = labs.filter((l) => l.status === "requested");
   const inProgress = labs.filter((l) => l.status === "in-progress");
@@ -83,14 +84,20 @@ export default function AdminLabs() {
               variant="gradient"
               className="w-full"
               size="lg"
-              disabled={!resultText.trim()}
-              onClick={() => {
-                if (!resulting) return;
-                setLabStatus(resulting.id, "resulted", resultText.trim());
-                setResulting(null);
+              disabled={!resultText.trim() || saving}
+              onClick={async () => {
+                if (!resulting || saving) return;
+                setSaving(true);
+                try {
+                  // close only after the server confirms the result is saved
+                  const ok = await setLabStatus(resulting.id, "resulted", resultText.trim());
+                  if (ok) setResulting(null);
+                } finally {
+                  setSaving(false);
+                }
               }}
             >
-              Save result
+              {saving ? "Saving…" : "Save result"}
             </Button>
           </div>
         </DialogContent>

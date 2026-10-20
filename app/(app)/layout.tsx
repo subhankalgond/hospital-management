@@ -217,6 +217,15 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <main className={cn("px-4 py-6 sm:px-6 lg:px-10", isPatient && "pb-24 lg:pb-6")}>
           <div className="mx-auto w-full max-w-6xl animate-fade-up">{children}</div>
         </main>
+
+        <footer className="border-t border-border/60 px-6 py-4 text-[11px] text-muted-foreground sm:px-10">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-4 gap-y-1">
+            <span>© 2026 CarePulse Health Systems</span>
+            <a href="/privacy" className="underline underline-offset-2 hover:text-foreground">Privacy Policy</a>
+            <a href="/terms" className="underline underline-offset-2 hover:text-foreground">Terms</a>
+            <span className="ml-auto">Decision-support features are not a diagnosis.</span>
+          </div>
+        </footer>
       </div>
 
       {/* Patient mobile bottom nav */}

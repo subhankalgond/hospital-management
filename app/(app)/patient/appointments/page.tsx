@@ -59,6 +59,7 @@ export default function PatientAppointments() {
   });
   const [reason, setReason] = React.useState("");
   const [slot, setSlot] = React.useState<string | null>(null);
+  const [booking, setBooking] = React.useState(false);
 
   // doctor browser filters
   const [deptFilter, setDeptFilter] = React.useState("all");
@@ -138,21 +139,26 @@ export default function PatientAppointments() {
   }
 
   async function submit() {
-    if (!canBook) return;
-    const created = await book({
-      patientId: session.patientId!,
-      doctorId,
-      date,
-      time: slot!,
-      reason: reason.trim(),
-    });
-    if (created) {
-      setOpen(false);
-      setDoctorId("");
-      setReason("");
-      setSlot(null);
-      setQ("");
-      setDeptFilter("all");
+    if (!canBook || booking) return;
+    setBooking(true);
+    try {
+      const created = await book({
+        patientId: session.patientId!,
+        doctorId,
+        date,
+        time: slot!,
+        reason: reason.trim(),
+      });
+      if (created) {
+        setOpen(false);
+        setDoctorId("");
+        setReason("");
+        setSlot(null);
+        setQ("");
+        setDeptFilter("all");
+      }
+    } finally {
+      setBooking(false);
     }
   }
 
@@ -417,8 +423,8 @@ export default function PatientAppointments() {
                     </div>
                   </div>
 
-                  <Button variant="gradient" className="w-full" size="lg" disabled={!canBook} onClick={submit}>
-                    Confirm booking
+                  <Button variant="gradient" className="w-full" size="lg" disabled={!canBook || booking} onClick={submit}>
+                    {booking ? "Booking…" : "Confirm booking"}
                   </Button>
                 </div>
               )}
@@ -462,6 +468,7 @@ function AppointmentCard({ appt, onCancel }: { appt: Appointment; onCancel?: () 
   const doctors = useStore((s) => s.doctors);
   const reschedule = useStore((s) => s.rescheduleAppointment);
   const [reschedOpen, setReschedOpen] = React.useState(false);
+  const [reschedBusy, setReschedBusy] = React.useState(false);
   const [date, setDate] = React.useState(appt.date);
   const [time, setTime] = React.useState(appt.time);
   const doc = doctors.find((d) => d.id === appt.doctorId);
@@ -534,12 +541,19 @@ function AppointmentCard({ appt, onCancel }: { appt: Appointment; onCancel?: () 
                   <Button
                     variant="gradient"
                     className="w-full"
-                    onClick={() => {
-                      reschedule(appt.id, date, time);
-                      setReschedOpen(false);
+                    disabled={reschedBusy}
+                    onClick={async () => {
+                      setReschedBusy(true);
+                      try {
+                        // only close the dialog when the server confirms
+                        const ok = await reschedule(appt.id, date, time);
+                        if (ok) setReschedOpen(false);
+                      } finally {
+                        setReschedBusy(false);
+                      }
                     }}
                   >
-                    Confirm new time
+                    {reschedBusy ? "Rescheduling…" : "Confirm new time"}
                   </Button>
                 </div>
               </DialogContent>
