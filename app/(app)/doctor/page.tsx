@@ -129,8 +129,8 @@ export default function DoctorQueue() {
 function CompleteVisitDialog({ appt, onClose }: { appt: Appointment | null; onClose: () => void }) {
   const patients = useStore((s) => s.patients);
   const addVisit = useStore((s) => s.addVisit);
-  const addPrescription = useStore((s) => s.addPrescription);
-  const createLab = useStore((s) => s.createLab);
+  const createPrescription = useStore((s) => s.createPrescription);
+  const createLabOrder = useStore((s) => s.createLabOrder);
   const setQueueStatus = useStore((s) => s.setQueueStatus);
 
   const [diagnosis, setDiagnosis] = React.useState("");
@@ -163,9 +163,9 @@ function CompleteVisitDialog({ appt, onClose }: { appt: Appointment | null; onCl
   if (!appt) return null;
   const p = patients.find((x) => x.id === appt.patientId);
 
-  function save() {
+  async function save() {
     if (!appt || !diagnosis.trim()) return;
-    addVisit({
+    await addVisit({
       patientId: appt.patientId,
       doctorId: appt.doctorId,
       department: useStore.getState().doctors.find((d) => d.id === appt.doctorId)?.department ?? "General Medicine",
@@ -181,21 +181,27 @@ function CompleteVisitDialog({ appt, onClose }: { appt: Appointment | null; onCl
       },
     });
     if (withRx && drug.trim()) {
-      addPrescription({
+      const rx = await createPrescription({
         patientId: appt.patientId,
-        doctorId: appt.doctorId,
         items: [
           {
             drug: drug.trim(),
-            dosage: dosage.trim() || "—",
+            dosage: dosage.trim() || "as directed",
+            route: "oral",
             frequency,
             durationDays: Number(duration) || 30,
           },
         ],
       });
+      if (!rx.ok) {
+        useStore.getState().toast({ title: "Prescription failed", description: rx.error, variant: "destructive" });
+      }
     }
     if (withLab && labTest.trim()) {
-      createLab({ patientId: appt.patientId, doctorId: appt.doctorId, test: labTest.trim() });
+      const lab = await createLabOrder({ patientId: appt.patientId, test: labTest.trim() });
+      if (!lab.ok) {
+        useStore.getState().toast({ title: "Lab order failed", description: lab.error, variant: "destructive" });
+      }
     }
     setQueueStatus(appt.id, "completed");
     onClose();

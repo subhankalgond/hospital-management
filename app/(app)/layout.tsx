@@ -10,6 +10,7 @@ import {
   BedDouble,
   CalendarDays,
   ClipboardPlus,
+  ClipboardList,
   CreditCard,
   FileHeart,
   FlaskConical,
@@ -18,6 +19,7 @@ import {
   LogOut,
   Menu,
   Mic,
+  Pill,
   Stethoscope,
   TrendingUp,
   Users,
@@ -50,8 +52,10 @@ const NAV: NavItem[] = [
   { href: "/doctor", label: "Overview", icon: Home, roles: ["doctor"] },
   { href: "/doctor/patients", label: "Patients", icon: Users, roles: ["doctor"] },
   { href: "/doctor/schedule", label: "Schedule", icon: CalendarDays, roles: ["doctor"] },
+  { href: "/admin/triage", label: "Triage review", icon: ClipboardList, roles: ["admin", "doctor"] },
 
   { href: "/admin", label: "Overview", icon: Home, roles: ["admin"] },
+  { href: "/admin/patients", label: "Patients", icon: Users, roles: ["admin"] },
   { href: "/admin/appointments", label: "Appointments", icon: CalendarDays, roles: ["admin"] },
   { href: "/admin/staff", label: "Staff & doctors", icon: Stethoscope, roles: ["admin"] },
   { href: "/admin/forecasting", label: "Forecasting", icon: TrendingUp, roles: ["admin"] },
@@ -60,6 +64,9 @@ const NAV: NavItem[] = [
   { href: "/admin/wards", label: "Wards", icon: ClipboardPlus, roles: ["admin"] },
   { href: "/admin/billing", label: "Billing", icon: CreditCard, roles: ["admin"] },
   { href: "/admin/labs", label: "Laboratory", icon: FlaskConical, roles: ["admin"] },
+
+  { href: "/pharmacy", label: "Pharmacy", icon: Pill, roles: ["admin", "pharmacy"] },
+  { href: "/lab", label: "Laboratory", icon: FlaskConical, roles: ["admin", "lab"] },
   { href: "/ai", label: "AI Insights", icon: Brain, roles: ["admin", "doctor", "patient"] },
 ];
 
@@ -243,7 +250,7 @@ function SidebarContent({
   pathname: string;
   role: Role;
 }) {
-  const roleTag = role === "admin" ? "Admin Console" : role === "doctor" ? "Clinician Workspace" : "Patient Portal";
+  const roleTag = role === "admin" ? "Admin Console" : role === "doctor" ? "Clinician Workspace" : role === "pharmacy" ? "Pharmacy — Dispensary" : role === "lab" ? "Laboratory — Processing" : "Patient Portal";
   return (
     <>
       <div className="flex h-16 items-center px-5 border-b border-border/60">

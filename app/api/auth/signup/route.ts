@@ -4,6 +4,7 @@ import { accounts, patients, doctors } from "@/db/schema";
 import { json, apiError, readJson, newId } from "@/lib/server/api";
 import { hashPassword, createSession } from "@/lib/server/auth";
 import { validateSignUp } from "@/lib/server/validate";
+import { nextPatientCode } from "@/lib/server/patient-id";
 import { todayISO } from "@/lib/utils";
 
 export async function POST(req: Request) {
@@ -42,8 +43,12 @@ export async function POST(req: Request) {
 
   if (input.role === "patient") {
     patientId = newId("P-", 6);
+    // Permanent Patient ID — allocated by the shared sequence, never by a client,
+    // never reissued per visit. Recorded once and stored on the patient row.
+    const patientCode = await nextPatientCode();
     await db.insert(patients).values({
       id: patientId,
+      patientCode,
       name: input.name,
       email: input.email,
       phone: input.phone,
@@ -89,5 +94,17 @@ export async function POST(req: Request) {
 
   await createSession(accountId);
 
-  return json({ ok: true, role: input.role, name: input.name, patientId, doctorId });
+  return json({ ok: true, role: input.role, name: input.name, patientId, patientCode: input.role === "patient" ? (await getAssignedCode(patientId as string)) : undefined, doctorId });
+}
+
+/** Fetches the freshly-assigned permanent Patient ID for the response. */
+async function getAssignedCode(patientId: string): Promise<string | undefined> {
+  const db2 = await getDb();
+  const rows = await db2
+    .select({ code: patients.patientCode })
+    .from(patients)
+    .where(eq(patients.id, patientId))
+    .limit(1);
+  const code = rows[0]?.code;
+  return code && code.length > 0 ? code : undefined;
 }

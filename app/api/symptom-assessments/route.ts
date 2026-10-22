@@ -110,6 +110,49 @@ export async function POST(req: Request) {
  * - Patients: only their own rows.
  * - Doctors/admins: all rows, optionally filtered by patientId.
  */
+export async function PATCH(req: Request) {
+  const guard = await requireAccount();
+  if ("response" in guard) return guard.response;
+  const account = guard.account;
+  if (account.role !== "doctor" && account.role !== "admin") {
+    return apiError("Only clinicians can review assessments.", 403);
+  }
+
+  const body = await readJson<{ id?: string; outcome?: string; note?: string }>(req);
+  const id = body?.id ?? "";
+  const outcome = body?.outcome ?? "";
+  if (!id) return apiError("Assessment id is required.", 422);
+  if (!["agreed", "changed", "dismissed"].includes(outcome)) {
+    return apiError("outcome must be agreed, changed or dismissed.", 422);
+  }
+
+  const db = await getDb();
+  const rows = await db.select().from(symptomAssessments).where(eq(symptomAssessments.id, id)).limit(1);
+  if (!rows[0]) return apiError("Assessment not found.", 404);
+
+  await db
+    .update(symptomAssessments)
+    .set({
+      reviewOutcome: outcome,
+      reviewNote: (body?.note ?? "").toString().slice(0, 500) || null,
+      reviewedBy: account.id,
+      reviewedAt: new Date().toISOString(),
+    })
+    .where(eq(symptomAssessments.id, id));
+
+  await recordAudit(account, {
+    action: "update",
+    entity: "symptom-assessment",
+    entityId: id,
+    detail: `review=${outcome}`,
+  });
+
+  return json({ ok: true });
+}
+
+/**
+ * GET /api/symptom-assessments?patientId=...
+ */
 export async function GET(req: Request) {
   const guard = await requireAccount();
   if ("response" in guard) return guard.response;

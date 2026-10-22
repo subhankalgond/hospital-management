@@ -62,6 +62,8 @@ const ROLE_HOME: Record<Role, string> = {
   patient: "/patient",
   doctor: "/doctor",
   admin: "/admin",
+  pharmacy: "/pharmacy",
+  lab: "/lab",
 };
 
 type Mode = "signin" | "signup";

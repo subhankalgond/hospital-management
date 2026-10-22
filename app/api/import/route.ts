@@ -12,6 +12,7 @@ import {
   wards as wardsT,
 } from "@/db/schema";
 import { json, apiError, readJson, requireAccount } from "@/lib/server/api";
+import { assignCodeIfMissing } from "@/lib/server/patient-id";
 
 /**
  * One-time migration: an admin can upload the device's legacy localStorage
@@ -204,6 +205,13 @@ export async function POST(req: Request) {
       }
       result[key]++;
     }
+  }
+
+  // Permanent Patient IDs for imported patients (skipped if a row had none).
+  for (const raw of body.patients ?? []) {
+    const p = asRecord(raw);
+    const id = s(p, "id");
+    if (id) await assignCodeIfMissing(id);
   }
 
   // Merge ward bed occupancy (structure is canonical from the server).

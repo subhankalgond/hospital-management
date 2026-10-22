@@ -8,6 +8,13 @@
       "when": 1792413781513,
       "tag": "0000_bitter_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792671197302,
+      "tag": "0001_dazzling_kate_bishop",
+      "breakpoints": true
     }
   ]
 }

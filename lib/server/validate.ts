@@ -90,5 +90,11 @@ export function validateSignUp(input: unknown): Valid<SignUpInput> {
     return { ok: true, value: { role: "admin", ...base, accessCode } };
   }
 
+  if (role === "pharmacy" || role === "lab") {
+    const phone = str(raw.phone);
+    if (!phone) return { ok: false, error: "Phone is required." };
+    return { ok: true, value: { role: role as "pharmacy" | "lab", ...base, phone } };
+  }
+
   return { ok: false, error: "Unknown account type." };
 }

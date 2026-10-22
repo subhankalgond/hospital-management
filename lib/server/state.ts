@@ -1,7 +1,7 @@
 /** Builds the role-scoped data snapshot that GET /api/state returns. */
 import { desc } from "drizzle-orm";
-import { getDb } from "@/db";
-import {
+import { getDb } from "@/db";import 
+  {
   accounts as accountsT,
   doctors as doctorsT,
   patients as patientsT,
@@ -15,6 +15,12 @@ import {
   emergencyCases as emergencyT,
   beds as bedsT,
   bedAudit as bedAuditT,
+  medicationOrders as medicationOrdersT,
+  admissions as admissionsT,
+  invoiceItems as invoiceItemsT,
+  inventory as inventoryT,
+  servicePrices as servicePricesT,
+  symptomAssessments as symptomAssessmentsT,
   type AccountRow,
   type PatientRow,
   type DoctorRow,
@@ -28,6 +34,12 @@ import {
   type EmergencyCaseRow,
   type BedRow,
   type BedAuditRow,
+  type MedicationOrderRow,
+  type AdmissionRow,
+  type InvoiceItemRow,
+  type InventoryRow,
+  type ServicePriceRow,
+  type SymptomAssessmentRow,
 } from "@/db/schema";
 import type { SessionAccount } from "./auth";
 
@@ -46,6 +58,12 @@ export interface DataState {
   emergencies: EmergencyCaseRow[];
   beds: BedRow[];
   bedAudit: BedAuditRow[];
+  medicationOrders: MedicationOrderRow[];
+  admissions: AdmissionRow[];
+  invoiceItems: InvoiceItemRow[];
+  inventory: InventoryRow[];
+  servicePrices: ServicePriceRow[];
+  symptomAssessments: SymptomAssessmentRow[];
   session: {
     id: string;
     role: string;
@@ -96,6 +114,12 @@ export async function buildState(account: SessionAccount): Promise<DataState> {
     emergencyRows,
     bedRows,
     bedAuditRows,
+    medicationOrderRows,
+    admissionRows,
+    invoiceItemRows,
+    inventoryRows,
+    servicePriceRows,
+    assessmentRows,
   ] = await inBatches([
     () => db.select().from(doctorsT).orderBy(desc(doctorsT.createdAt)),
     () => db.select().from(patientsT).orderBy(desc(patientsT.createdAt)),
@@ -109,6 +133,12 @@ export async function buildState(account: SessionAccount): Promise<DataState> {
     () => db.select().from(emergencyT).orderBy(desc(emergencyT.arrivalAt)),
     () => db.select().from(bedsT).orderBy(bedsT.wardId),
     () => db.select().from(bedAuditT).orderBy(desc(bedAuditT.at)).limit(200),
+    () => db.select().from(medicationOrdersT).orderBy(desc(medicationOrdersT.createdAt)).limit(500),
+    () => db.select().from(admissionsT).orderBy(desc(admissionsT.admittedAt)).limit(500),
+    () => db.select().from(invoiceItemsT).orderBy(desc(invoiceItemsT.createdAt)).limit(500),
+    () => db.select().from(inventoryT).orderBy(inventoryT.name),
+    () => db.select().from(servicePricesT),
+    () => db.select().from(symptomAssessmentsT).orderBy(desc(symptomAssessmentsT.createdAt)).limit(100),
   ]);
 
   // Ward structure is fixed infrastructure; seed it on first ever load.
@@ -142,24 +172,72 @@ export async function buildState(account: SessionAccount): Promise<DataState> {
     doctorId: account.doctorId,
   };
 
+  /** Clinical staff (doctor/admin) see full clinical state; pharmacy and lab
+   *  roles get only the patient fields they need — never clinical history. */
+  const isClinical = account.role === "doctor" || account.role === "admin";
+
   if (!isPatient) {
-    return {
-      accounts: accountsOut,
-      doctors: doctorRows,
-      patients: patientRows,
-      appointments: appointmentRows,
-      prescriptions: prescriptionRows,
-      visits: visitRows,
-      invoices: invoiceRows,
-      labs: labRows,
-      wards: wardsOut,
-      leaves: leaveRows,
-      emergencies: emergencyRows,
-      beds: account.role === "admin" ? bedRows : [],
-      bedAudit: account.role === "admin" ? bedAuditRows : [],
-      session,
-      meta: { serverTime: new Date().toISOString() },
-    };
+    if (isClinical || account.role === "pharmacy" || account.role === "lab") {
+      const limitedPatients = account.role === "admin" || account.role === "doctor"
+        ? patientRows
+        : patientRows.map((p: PatientRow) => ({
+            id: p.id,
+            patientCode: p.patientCode,
+            name: p.name,
+            dob: p.dob,
+            gender: p.gender,
+            bloodGroup: p.bloodGroup,
+            allergies: p.allergies, // clinically relevant for dispensing / sample handling
+            email: "",
+            phone: "",
+            address: "",
+            conditions: [],
+            immunizations: [],
+            insurance: { provider: "", number: "" },
+            emergencyContact: { name: "", phone: "", relation: "" },
+            createdAt: p.createdAt,
+          }));
+
+      const clinicalState = {
+        accounts: accountsOut,
+        doctors: doctorRows.map((d: DoctorRow) => ({
+          id: d.id,
+          name: d.name,
+          qualification: d.qualification,
+          licenseNo: account.role === "admin" ? d.licenseNo : "",
+          specialty: d.specialty,
+          department: d.department,
+          email: account.role === "admin" ? d.email : "",
+          phone: account.role === "admin" ? d.phone : "",
+          room: d.room,
+          experienceYears: d.experienceYears,
+          rating: d.rating,
+          onCall: d.onCall,
+          shift: d.shift,
+          createdAt: d.createdAt,
+        })),
+        patients: limitedPatients,
+        appointments: account.role === "lab" ? [] : appointmentRows,
+        prescriptions: account.role === "pharmacy" || account.role === "lab" ? [] : prescriptionRows,
+        visits: account.role === "pharmacy" ? [] : visitRows,
+        invoices: isClinical ? invoiceRows : [],
+        labs: labRows.filter((l: LabRow) => l.workflow !== "cancelled" || isClinical),
+        wards: wardsOut,
+        leaves: leaveRows,
+        emergencies: isClinical ? emergencyRows : [],
+        beds: account.role === "admin" ? bedRows : [],
+        bedAudit: account.role === "admin" ? bedAuditRows : [],
+        medicationOrders: medicationOrderRows,
+        admissions: admissionRows,
+        invoiceItems: isClinical ? invoiceItemRows : [],
+        inventory: inventoryRows,
+        servicePrices: servicePriceRows,
+        symptomAssessments: isClinical ? assessmentRows : [],
+        session,
+        meta: { serverTime: new Date().toISOString() },
+      };
+      return clinicalState;
+    }
   }
 
   // Patient view: strictly their own data.
@@ -181,6 +259,12 @@ export async function buildState(account: SessionAccount): Promise<DataState> {
     emergencies: [],
     beds: [],
     bedAudit: [],
+    medicationOrders: mine(medicationOrderRows),
+    admissions: mine(admissionRows),
+    invoiceItems: mine(invoiceItemRows),
+    inventory: [],
+    servicePrices: [],
+    symptomAssessments: [],
     session,
     meta: { serverTime: new Date().toISOString() },
   };

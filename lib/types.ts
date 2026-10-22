@@ -1,4 +1,4 @@
-export type Role = "patient" | "doctor" | "admin";
+export type Role = "patient" | "doctor" | "admin" | "pharmacy" | "lab";
 
 /** A registered user: credentials + a link to their role profile. */
 export interface Account {
@@ -30,6 +30,8 @@ export interface User {
 
 export interface Patient {
   id: string;
+  /** permanent hospital identifier, e.g. PAT-2026-000001 — assigned once by the server */
+  patientCode: string;
   name: string;
   email: string;
   phone: string;
@@ -68,6 +70,12 @@ export type SignUpInputBase = {
   password: string;
 };
 
+/** Pharmacy / laboratory staff self-registration. */
+export type SignUpStaffInput = SignUpInputBase & {
+  role: "pharmacy" | "lab";
+  phone: string;
+};
+
 export type SignUpPatientInput = SignUpInputBase & {
   role: "patient";
   phone: string;
@@ -92,7 +100,7 @@ export type SignUpAdminInput = SignUpInputBase & {
   accessCode: string;
 };
 
-export type SignUpInput = SignUpPatientInput | SignUpDoctorInput | SignUpAdminInput;
+export type SignUpInput = SignUpPatientInput | SignUpDoctorInput | SignUpAdminInput | SignUpStaffInput;
 
 export type AppointmentStatus = "scheduled" | "confirmed" | "completed" | "cancelled" | "no-show";
 export type VisitStatus = "waiting" | "in-progress" | "completed";
@@ -147,6 +155,16 @@ export interface Invoice {
 
 export type LabStatus = "requested" | "in-progress" | "resulted";
 
+/** Detailed lab workflow, tracked alongside the legacy `status` field. */
+export type LabWorkflow =
+  | "ordered"
+  | "awaiting_sample"
+  | "sample_collected"
+  | "processing"
+  | "result_ready"
+  | "verified"
+  | "cancelled";
+
 export interface LabRequest {
   id: string;
   patientId: string;
@@ -155,6 +173,118 @@ export interface LabRequest {
   requestedOn: string;
   status: LabStatus;
   result?: string;
+  workflow?: LabWorkflow;
+  priority?: "routine" | "urgent" | "stat";
+  visitId?: string | null;
+  clinicalNote?: string;
+  sampleCollectedAt?: string | null;
+  processedAt?: string | null;
+  processedBy?: string | null;
+  verifiedBy?: string | null;
+  verifiedByName?: string;
+  verifiedAt?: string | null;
+  cancelledReason?: string;
+}
+
+/* ─────────────── Pharmacy medication orders ─────────────── */
+
+export type MedicationOrderStatus =
+  | "pending_review"
+  | "verified"
+  | "dispensing"
+  | "dispensed"
+  | "clarification_required"
+  | "on_hold"
+  | "cancelled";
+
+export interface MedicationOrder {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  visitId?: string | null;
+  prescriptionId?: string | null;
+  drug: string;
+  dosage: string;
+  route: string;
+  frequency: string;
+  durationDays: number;
+  quantity: number;
+  instructions: string;
+  status: MedicationOrderStatus;
+  verifiedBy?: string | null;
+  verifiedByName?: string;
+  verifiedAt?: string | null;
+  dispensedBy?: string | null;
+  dispensedByName?: string;
+  dispensedAt?: string | null;
+  noteFromPharmacy?: string;
+  createdAt: string; // ISO
+}
+
+export interface Admission {
+  id: string;
+  patientId: string;
+  doctorId?: string | null;
+  wardId: string;
+  wardName: string;
+  bedId?: string | null;
+  bedLabel: string;
+  reason: string;
+  notes: string;
+  status: "active" | "discharged";
+  admittedAt: string; // ISO timestamp
+  dischargedAt?: string | null;
+}
+
+export interface InvoiceItem {
+  id: string;
+  invoiceId: string;
+  patientId: string;
+  sourceType: "medication" | "lab" | "consultation" | "manual";
+  sourceOrderId?: string | null;
+  label: string;
+  code?: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  status: "billed" | "awaiting_price" | "cancelled";
+  currency: string;
+  createdAt: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  unit: string;
+  unitPrice: number;
+  stock: number;
+  reorderLevel: number;
+}
+
+export interface ServicePrice {
+  id: string;
+  kind: "medication" | "lab";
+  name: string;
+  unitPrice: number;
+}
+
+export interface SymptomAssessmentRow {
+  id: string;
+  patientId: string;
+  doctorId?: string | null;
+  transcript: string;
+  inputMode: "text" | "voice";
+  extracted: Record<string, unknown>;
+  suggestedDepartment: string;
+  alternativeDepartments?: string[];
+  urgency: "emergency" | "urgent" | "routine";
+  urgencyNote: string;
+  engine: string;
+  reviewOutcome?: "agreed" | "changed" | "dismissed" | null;
+  reviewNote?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
 }
 
 export interface Bed {

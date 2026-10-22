@@ -1,0 +1,3040 @@
+{
+  "patients": [
+    {
+      "id": "P-4jc2ms",
+      "name": "Rohit Sharma",
+      "email": "rohit@demo.carepulse",
+      "phone": "+91 91234 56780",
+      "dob": "1988-04-12",
+      "gender": "male",
+      "blood_group": "B+",
+      "address": "12 Juhu Tara Road, Mumbai 400049",
+      "emergency_contact": "{\"name\":\"Priya Sharma\",\"phone\":\"+91 91234 56781\",\"relation\":\"Spouse\"}",
+      "allergies": "[\"Penicillin\"]",
+      "conditions": "[\"Hypertension\"]",
+      "immunizations": "[\"Influenza (2025)\",\"Tdap (2020)\"]",
+      "insurance": "{\"provider\":\"Star Health\",\"number\":\"SH-8842-1160-33\"}",
+      "created_at": "2026-10-13T16:09:53.003Z",
+      "patient_code": "PAT-2026-000001"
+    },
+    {
+      "id": "P-ms6e4i",
+      "name": "Meera Iyer",
+      "email": "meera@demo.carepulse",
+      "phone": "+91 91234 56782",
+      "dob": "1996-09-30",
+      "gender": "female",
+      "blood_group": "O+",
+      "address": "45 Anna Salai, Chennai 600002",
+      "emergency_contact": "{\"name\":\"Ramesh Iyer\",\"phone\":\"+91 91234 56783\",\"relation\":\"Father\"}",
+      "allergies": "[\"Dust mites\"]",
+      "conditions": "[\"Asthma\"]",
+      "immunizations": "[\"Hepatitis B (2010)\"]",
+      "insurance": "{\"provider\":\"HDFC Ergo\",\"number\":\"HE-2210-5590-11\"}",
+      "created_at": "2026-10-13T16:09:54.488Z",
+      "patient_code": "PAT-2026-000002"
+    },
+    {
+      "id": "P-_DX7JQ",
+      "name": "reni",
+      "email": "reni@g.c",
+      "phone": "9500285322",
+      "dob": "2026-10-22",
+      "gender": "female",
+      "blood_group": "O+",
+      "address": "",
+      "emergency_contact": {
+        "name": "",
+        "phone": "",
+        "relation": ""
+      },
+      "allergies": [],
+      "conditions": [],
+      "immunizations": [],
+      "insurance": {
+        "number": "",
+        "provider": ""
+      },
+      "created_at": "2026-10-22T11:10:28.603Z",
+      "patient_code": "PAT-2026-000003"
+    }
+  ],
+  "doctors": [
+    {
+      "id": "D-l5ri7j",
+      "name": "Anjali Deshmukh (Demo)",
+      "qualification": "MBBS, MS",
+      "license_no": "DEMO-PUL-1027",
+      "specialty": "Intensivist",
+      "department": "Pulmonology",
+      "email": "anjali.deshmukh@demo.carepulse",
+      "phone": "+91 98210000 11027",
+      "room": "PU-127",
+      "experience_years": 11,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:09:36.734Z"
+    },
+    {
+      "id": "D-zcyuf2",
+      "name": "Vikram Sethi (Demo)",
+      "qualification": "MBBS, MD, FRCS",
+      "license_no": "DEMO-DER-1005",
+      "specialty": "Cosmetic Dermatologist",
+      "department": "Dermatology",
+      "email": "vikram.sethi@demo.carepulse",
+      "phone": "+91 98210000 11005",
+      "room": "DE-105",
+      "experience_years": 11,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:09:19.625Z"
+    },
+    {
+      "id": "D-rojovf",
+      "name": "Pooja Shah (Demo)",
+      "qualification": "MBBS, MD, FRCS",
+      "license_no": "DEMO-OPH-1017",
+      "specialty": "Retina Specialist",
+      "department": "Ophthalmology",
+      "email": "pooja.shah@demo.carepulse",
+      "phone": "+91 98210000 11017",
+      "room": "OP-117",
+      "experience_years": 12,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:09:28.235Z"
+    },
+    {
+      "id": "D-s6jbv4",
+      "name": "Prakash Naik (Demo)",
+      "qualification": "MBBS, MD",
+      "license_no": "DEMO-PLA-1042",
+      "specialty": "Plastic Surgeon",
+      "department": "Plastic Surgery",
+      "email": "prakash.naik@demo.carepulse",
+      "phone": "+91 98210000 11042",
+      "room": "PL-142",
+      "experience_years": 15,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:01:14.090Z"
+    },
+    {
+      "id": "D-zhd8pg",
+      "name": "Arjun Khanna (Demo)",
+      "qualification": "MBBS, MD",
+      "license_no": "DEMO-ORT-1006",
+      "specialty": "Orthopedic Surgeon",
+      "department": "Orthopedics",
+      "email": "arjun.khanna@demo.carepulse",
+      "phone": "+91 98210000 11006",
+      "room": "OR-106",
+      "experience_years": 12,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:00:46.631Z"
+    },
+    {
+      "id": "D-q0f9ra",
+      "name": "Meenakshi Rajan (Demo)",
+      "qualification": "MBBS, MD, FRCS",
+      "license_no": "DEMO-NEP-1029",
+      "specialty": "Dialysis Specialist",
+      "department": "Nephrology",
+      "email": "meenakshi.rajan@demo.carepulse",
+      "phone": "+91 98210000 11029",
+      "room": "NE-129",
+      "experience_years": 13,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:09:38.294Z"
+    },
+    {
+      "id": "D-1ozzgr",
+      "name": "Nisha Pillai (Demo)",
+      "qualification": "MS, DNB",
+      "license_no": "DEMO-ORT-1007",
+      "specialty": "Sports Medicine Specialist",
+      "department": "Orthopedics",
+      "email": "nisha.pillai@demo.carepulse",
+      "phone": "+91 98210000 11007",
+      "room": "OR-107",
+      "experience_years": 13,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:09:21.064Z"
+    },
+    {
+      "id": "D-law1ro",
+      "name": "Alok Trivedi (Demo)",
+      "qualification": "MBBS, DNB",
+      "license_no": "DEMO-RHE-1044",
+      "specialty": "Rheumatologist",
+      "department": "Rheumatology",
+      "email": "alok.trivedi@demo.carepulse",
+      "phone": "+91 98210000 11044",
+      "room": "RH-144",
+      "experience_years": 6,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:01:15.560Z"
+    },
+    {
+      "id": "D-5z6e6m",
+      "name": "Swati Jain (Demo)",
+      "qualification": "MS, DNB",
+      "license_no": "DEMO-END-1031",
+      "specialty": "Diabetologist",
+      "department": "Endocrinology",
+      "email": "swati.jain@demo.carepulse",
+      "phone": "+91 98210000 11031",
+      "room": "EN-131",
+      "experience_years": 15,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:09:39.793Z"
+    },
+    {
+      "id": "D-uocnjp",
+      "name": "Farhan Qureshi (Demo)",
+      "qualification": "MBBS, DNB",
+      "license_no": "DEMO-NEU-1008",
+      "specialty": "Neurologist",
+      "department": "Neurology",
+      "email": "farhan.qureshi@demo.carepulse",
+      "phone": "+91 98210000 11008",
+      "room": "NE-108",
+      "experience_years": 14,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:00:48.212Z"
+    },
+    {
+      "id": "D-6hagsa",
+      "name": "Girish Paltani (Demo)",
+      "qualification": "MBBS, MD, DM",
+      "license_no": "DEMO-GER-1046",
+      "specialty": "Geriatrician",
+      "department": "Geriatrics",
+      "email": "girish.paltani@demo.carepulse",
+      "phone": "+91 98210000 11046",
+      "room": "GE-146",
+      "experience_years": 8,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:01:17.140Z"
+    },
+    {
+      "id": "D-n5b1ha",
+      "name": "Divya Menon (Demo)",
+      "qualification": "MBBS, MS",
+      "license_no": "DEMO-NEU-1009",
+      "specialty": "Neurosurgeon",
+      "department": "Neurology",
+      "email": "divya.menon@demo.carepulse",
+      "phone": "+91 98210000 11009",
+      "room": "NE-109",
+      "experience_years": 15,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:09:22.444Z"
+    },
+    {
+      "id": "D-4jculy",
+      "name": "Rakesh Talwar (Demo)",
+      "qualification": "MBBS, MD, DM",
+      "license_no": "DEMO-GEN-1010",
+      "specialty": "Internal Medicine",
+      "department": "General Medicine",
+      "email": "rakesh.talwar@demo.carepulse",
+      "phone": "+91 98210000 11010",
+      "room": "GE-110",
+      "experience_years": 16,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:00:49.766Z"
+    },
+    {
+      "id": "D-emqx4c",
+      "name": "Lakshmi Gupta (Demo)",
+      "qualification": "MBBS, MD",
+      "license_no": "DEMO-GYN-1018",
+      "specialty": "Obstetrician",
+      "department": "Gynecology",
+      "email": "lakshmi.gupta@demo.carepulse",
+      "phone": "+91 98210000 11018",
+      "room": "GY-118",
+      "experience_years": 13,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:00:55.886Z"
+    },
+    {
+      "id": "D-wbwi3n",
+      "name": "Anita Bose (Demo)",
+      "qualification": "MBBS, MD, FRCS",
+      "license_no": "DEMO-GEN-1011",
+      "specialty": "Family Physician",
+      "department": "General Medicine",
+      "email": "anita.bose@demo.carepulse",
+      "phone": "+91 98210000 11011",
+      "room": "GE-111",
+      "experience_years": 6,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:09:23.856Z"
+    },
+    {
+      "id": "D-92ute2",
+      "name": "Nikhil Chandra (Demo)",
+      "qualification": "MBBS, MD",
+      "license_no": "DEMO-PSY-1012",
+      "specialty": "Psychiatrist",
+      "department": "Psychiatry",
+      "email": "nikhil.chandra@demo.carepulse",
+      "phone": "+91 98210000 11012",
+      "room": "PS-112",
+      "experience_years": 7,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:00:51.281Z"
+    },
+    {
+      "id": "D-733cup",
+      "name": "Tara Malhotra (Demo)",
+      "qualification": "MS, DNB",
+      "license_no": "DEMO-PSY-1013",
+      "specialty": "Child & Adolescent Psychiatrist",
+      "department": "Psychiatry",
+      "email": "tara.malhotra@demo.carepulse",
+      "phone": "+91 98210000 11013",
+      "room": "PS-113",
+      "experience_years": 8,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:09:25.314Z"
+    },
+    {
+      "id": "D-ncpp08",
+      "name": "Joy Dutta (Demo)",
+      "qualification": "MBBS, DNB",
+      "license_no": "DEMO-ENT-1014",
+      "specialty": "Otolaryngologist",
+      "department": "ENT",
+      "email": "joy.dutta@demo.carepulse",
+      "phone": "+91 98210000 11014",
+      "room": "EN-114",
+      "experience_years": 9,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:00:52.851Z"
+    },
+    {
+      "id": "D-ld53ub",
+      "name": "Imran Ali (Demo)",
+      "qualification": "MS, DNB",
+      "license_no": "DEMO-GYN-1019",
+      "specialty": "Reproductive Endocrinologist",
+      "department": "Gynecology",
+      "email": "imran.ali@demo.carepulse",
+      "phone": "+91 98210000 11019",
+      "room": "GY-119",
+      "experience_years": 14,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:09:29.789Z"
+    },
+    {
+      "id": "D-iw6zkp",
+      "name": "Shruti Bhat (Demo)",
+      "qualification": "MBBS, MD, FRCS",
+      "license_no": "DEMO-ONC-1023",
+      "specialty": "Radiation Oncologist",
+      "department": "Oncology",
+      "email": "shruti.bhat@demo.carepulse",
+      "phone": "+91 98210000 11023",
+      "room": "ON-123",
+      "experience_years": 7,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:09:33.184Z"
+    },
+    {
+      "id": "D-0kkjro",
+      "name": "Ravi Subramanian (Demo)",
+      "qualification": "MBBS, DNB",
+      "license_no": "DEMO-URO-1020",
+      "specialty": "Urologist",
+      "department": "Urology",
+      "email": "ravi.subramanian@demo.carepulse",
+      "phone": "+91 98210000 11020",
+      "room": "UR-120",
+      "experience_years": 15,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:00:57.391Z"
+    },
+    {
+      "id": "D-nezhuw",
+      "name": "Ishita Roy (Demo)",
+      "qualification": "MBBS, MS",
+      "license_no": "DEMO-ANE-1033",
+      "specialty": "Pain Management Specialist",
+      "department": "Anesthesiology",
+      "email": "ishita.roy@demo.carepulse",
+      "phone": "+91 98210000 11033",
+      "room": "AN-133",
+      "experience_years": 6,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:09:41.354Z"
+    },
+    {
+      "id": "D-15r9h9",
+      "name": "Priya Nambiar (Demo)",
+      "qualification": "MBBS, MS",
+      "license_no": "DEMO-URO-1021",
+      "specialty": "Andrologist",
+      "department": "Urology",
+      "email": "priya.nambiar@demo.carepulse",
+      "phone": "+91 98210000 11021",
+      "room": "UR-121",
+      "experience_years": 16,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:09:31.374Z"
+    },
+    {
+      "id": "D-x5ycvc",
+      "name": "Karan Malhotra (Demo)",
+      "qualification": "MBBS, MD",
+      "license_no": "DEMO-GAS-1024",
+      "specialty": "Gastroenterologist",
+      "department": "Gastroenterology",
+      "email": "karan.malhotra@demo.carepulse",
+      "phone": "+91 98210000 11024",
+      "room": "GA-124",
+      "experience_years": 8,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:01:00.556Z"
+    },
+    {
+      "id": "D-r6g85i",
+      "name": "Deepa Krishnan (Demo)",
+      "qualification": "MS, DNB",
+      "license_no": "DEMO-GAS-1025",
+      "specialty": "Hepatologist",
+      "department": "Gastroenterology",
+      "email": "deepa.krishnan@demo.carepulse",
+      "phone": "+91 98210000 11025",
+      "room": "GA-125",
+      "experience_years": 9,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:09:35.054Z"
+    },
+    {
+      "id": "D-5x430z",
+      "name": "Suresh Pillai (Demo)",
+      "qualification": "MBBS, MD",
+      "license_no": "DEMO-PAT-1036",
+      "specialty": "Pathologist",
+      "department": "Pathology",
+      "email": "suresh.pillai@demo.carepulse",
+      "phone": "+91 98210000 11036",
+      "room": "PA-136",
+      "experience_years": 9,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:01:09.650Z"
+    },
+    {
+      "id": "D-yinqw6",
+      "name": "Sanjay Purohit (Demo)",
+      "qualification": "MBBS, DNB",
+      "license_no": "DEMO-PUL-1026",
+      "specialty": "Pulmonologist",
+      "department": "Pulmonology",
+      "email": "sanjay.purohit@demo.carepulse",
+      "phone": "+91 98210000 11026",
+      "room": "PU-126",
+      "experience_years": 10,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:01:02.111Z"
+    },
+    {
+      "id": "D-h54x5v",
+      "name": "Anil Mehta (Demo)",
+      "qualification": "MBBS, MD",
+      "license_no": "DEMO-CAR-1000",
+      "specialty": "Interventional Cardiologist",
+      "department": "Cardiology",
+      "email": "anil.mehta@demo.carepulse",
+      "phone": "+91 98210000 11000",
+      "room": "CA-100",
+      "experience_years": 6,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:00:42.992Z"
+    },
+    {
+      "id": "D-vgbcya",
+      "name": "Sana Rao (Demo)",
+      "qualification": "MS, DNB",
+      "license_no": "DEMO-CAR-1001",
+      "specialty": "Cardiac Electrophysiologist",
+      "department": "Cardiology",
+      "email": "sana.rao@demo.carepulse",
+      "phone": "+91 98210000 11001",
+      "room": "CA-101",
+      "experience_years": 7,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:09:16.739Z"
+    },
+    {
+      "id": "D-mtl3i9",
+      "name": "Meera Deshpande (Demo)",
+      "qualification": "MBBS, DNB",
+      "license_no": "DEMO-PED-1002",
+      "specialty": "Pediatrician",
+      "department": "Pediatrics",
+      "email": "meera.deshpande@demo.carepulse",
+      "phone": "+91 98210000 11002",
+      "room": "PE-102",
+      "experience_years": 8,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:00:43.732Z"
+    },
+    {
+      "id": "D-bkq3kd",
+      "name": "Ritika Verma (Demo)",
+      "qualification": "MBBS, MS",
+      "license_no": "DEMO-ENT-1015",
+      "specialty": "Audiologist",
+      "department": "ENT",
+      "email": "ritika.verma@demo.carepulse",
+      "phone": "+91 98210000 11015",
+      "room": "EN-115",
+      "experience_years": 10,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:09:26.769Z"
+    },
+    {
+      "id": "D-mhungq",
+      "name": "Arvind Swaminathan (Demo)",
+      "qualification": "MBBS, DNB",
+      "license_no": "DEMO-EME-1038",
+      "specialty": "Emergency Physician",
+      "department": "Emergency Medicine",
+      "email": "arvind.swaminathan@demo.carepulse",
+      "phone": "+91 98210000 11038",
+      "room": "EM-138",
+      "experience_years": 11,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:01:11.135Z"
+    },
+    {
+      "id": "D-5v7xab",
+      "name": "Rahul Nair (Demo)",
+      "qualification": "MBBS, MS",
+      "license_no": "DEMO-PED-1003",
+      "specialty": "Neonatologist",
+      "department": "Pediatrics",
+      "email": "rahul.nair@demo.carepulse",
+      "phone": "+91 98210000 11003",
+      "room": "PE-103",
+      "experience_years": 9,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:09:18.195Z"
+    },
+    {
+      "id": "D-w5xu2z",
+      "name": "Kavya Iyer (Demo)",
+      "qualification": "MBBS, MD, DM",
+      "license_no": "DEMO-DER-1004",
+      "specialty": "Dermatologist",
+      "department": "Dermatology",
+      "email": "kavya.iyer@demo.carepulse",
+      "phone": "+91 98210000 11004",
+      "room": "DE-104",
+      "experience_years": 10,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:00:45.191Z"
+    },
+    {
+      "id": "D-1c6laq",
+      "name": "Aditya Kulkarni (Demo)",
+      "qualification": "MBBS, MD, DM",
+      "license_no": "DEMO-ONC-1022",
+      "specialty": "Medical Oncologist",
+      "department": "Oncology",
+      "email": "aditya.kulkarni@demo.carepulse",
+      "phone": "+91 98210000 11022",
+      "room": "ON-122",
+      "experience_years": 6,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:00:58.960Z"
+    },
+    {
+      "id": "D-1flbjo",
+      "name": "Yash Bedi (Demo)",
+      "qualification": "MBBS, MD, DM",
+      "license_no": "DEMO-PHY-1040",
+      "specialty": "Physiatrist",
+      "department": "Physical Medicine",
+      "email": "yash.bedi@demo.carepulse",
+      "phone": "+91 98210000 11040",
+      "room": "PH-140",
+      "experience_years": 13,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:01:12.585Z"
+    },
+    {
+      "id": "D-aqqhum",
+      "name": "Sameer Joshi (Demo)",
+      "qualification": "MBBS, MD, DM",
+      "license_no": "DEMO-OPH-1016",
+      "specialty": "Ophthalmologist",
+      "department": "Ophthalmology",
+      "email": "sameer.joshi@demo.carepulse",
+      "phone": "+91 98210000 11016",
+      "room": "OP-116",
+      "experience_years": 11,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:00:54.386Z"
+    },
+    {
+      "id": "D-zgxxtc",
+      "name": "Naveen Gounder (Demo)",
+      "qualification": "MBBS, MD, DM",
+      "license_no": "DEMO-NEP-1028",
+      "specialty": "Nephrologist",
+      "department": "Nephrology",
+      "email": "naveen.gounder@demo.carepulse",
+      "phone": "+91 98210000 11028",
+      "room": "NE-128",
+      "experience_years": 12,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:01:03.731Z"
+    },
+    {
+      "id": "D-380w9u",
+      "name": "Vivek Anand (Demo)",
+      "qualification": "MBBS, MD",
+      "license_no": "DEMO-END-1030",
+      "specialty": "Endocrinologist",
+      "department": "Endocrinology",
+      "email": "vivek.anand@demo.carepulse",
+      "phone": "+91 98210000 11030",
+      "room": "EN-130",
+      "experience_years": 14,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:01:05.411Z"
+    },
+    {
+      "id": "D-pb2lws",
+      "name": "Rohit Chowdhury (Demo)",
+      "qualification": "MBBS, DNB",
+      "license_no": "DEMO-ANE-1032",
+      "specialty": "Anesthesiologist",
+      "department": "Anesthesiology",
+      "email": "rohit.chowdhury@demo.carepulse",
+      "phone": "+91 98210000 11032",
+      "room": "AN-132",
+      "experience_years": 16,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:01:06.775Z"
+    },
+    {
+      "id": "D-jvzwrq",
+      "name": "Manish Tiwari (Demo)",
+      "qualification": "MBBS, MD, DM",
+      "license_no": "DEMO-RAD-1034",
+      "specialty": "Diagnostic Radiologist",
+      "department": "Radiology",
+      "email": "manish.tiwari@demo.carepulse",
+      "phone": "+91 98210000 11034",
+      "room": "RA-134",
+      "experience_years": 7,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:01:08.215Z"
+    },
+    {
+      "id": "D-z67oue",
+      "name": "Preeti Sahay (Demo)",
+      "qualification": "MBBS, MD, FRCS",
+      "license_no": "DEMO-RAD-1035",
+      "specialty": "Interventional Radiologist",
+      "department": "Radiology",
+      "email": "preeti.sahay@demo.carepulse",
+      "phone": "+91 98210000 11035",
+      "room": "RA-135",
+      "experience_years": 8,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:09:43.073Z"
+    },
+    {
+      "id": "D-8wjiza",
+      "name": "Bhavana Naik (Demo)",
+      "qualification": "MS, DNB",
+      "license_no": "DEMO-PAT-1037",
+      "specialty": "Hematopathologist",
+      "department": "Pathology",
+      "email": "bhavana.naik@demo.carepulse",
+      "phone": "+91 98210000 11037",
+      "room": "PA-137",
+      "experience_years": 10,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:09:44.653Z"
+    },
+    {
+      "id": "D-jtgo94",
+      "name": "Nandini Iyer (Demo)",
+      "qualification": "MBBS, MS",
+      "license_no": "DEMO-EME-1039",
+      "specialty": "Trauma Specialist",
+      "department": "Emergency Medicine",
+      "email": "nandini.iyer@demo.carepulse",
+      "phone": "+91 98210000 11039",
+      "room": "EM-139",
+      "experience_years": 12,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:09:46.153Z"
+    },
+    {
+      "id": "D-9l1ukt",
+      "name": "Ritu Sood (Demo)",
+      "qualification": "MBBS, MD, FRCS",
+      "license_no": "DEMO-PHY-1041",
+      "specialty": "Rehabilitation Specialist",
+      "department": "Physical Medicine",
+      "email": "ritu.sood@demo.carepulse",
+      "phone": "+91 98210000 11041",
+      "room": "PH-141",
+      "experience_years": 14,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:09:47.553Z"
+    },
+    {
+      "id": "D-b2rc58",
+      "name": "Vidya Menon (Demo)",
+      "qualification": "MS, DNB",
+      "license_no": "DEMO-PLA-1043",
+      "specialty": "Craniofacial Surgeon",
+      "department": "Plastic Surgery",
+      "email": "vidya.menon@demo.carepulse",
+      "phone": "+91 98210000 11043",
+      "room": "PL-143",
+      "experience_years": 16,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "evening",
+      "created_at": "2026-10-13T16:09:48.959Z"
+    },
+    {
+      "id": "D-2dhn7e",
+      "name": "Sneha Kulkarni (Demo)",
+      "qualification": "MBBS, MS",
+      "license_no": "DEMO-RHE-1045",
+      "specialty": "Immunologist",
+      "department": "Rheumatology",
+      "email": "sneha.kulkarni@demo.carepulse",
+      "phone": "+91 98210000 11045",
+      "room": "RH-145",
+      "experience_years": 7,
+      "rating": 4.7,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-13T16:09:50.333Z"
+    },
+    {
+      "id": "D-8v8tiz",
+      "name": "Chhaya Trivedi (Demo)",
+      "qualification": "MBBS, MD, FRCS",
+      "license_no": "DEMO-GER-1047",
+      "specialty": "Palliative Care Specialist",
+      "department": "Geriatrics",
+      "email": "chhaya.trivedi@demo.carepulse",
+      "phone": "+91 98210000 11047",
+      "room": "GE-147",
+      "experience_years": 9,
+      "rating": 4.7,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-13T16:09:51.763Z"
+    },
+    {
+      "id": "D-K9FFLA",
+      "name": "reniD",
+      "qualification": "mbbs",
+      "license_no": "4546464646",
+      "specialty": "Neonatologist",
+      "department": "Pediatrics",
+      "email": "reni@c.c",
+      "phone": "9840407989",
+      "room": "—",
+      "experience_years": 8,
+      "rating": 0,
+      "on_call": true,
+      "shift": "night",
+      "created_at": "2026-10-22T11:24:47.102Z"
+    },
+    {
+      "id": "D-W_EFGX",
+      "name": "Dr Smoke Tester",
+      "qualification": "MBBS",
+      "license_no": "PMC-1792671099369",
+      "specialty": "General Medicine",
+      "department": "General Medicine",
+      "email": "e2e-1792671099369-doctor@example.com",
+      "phone": "0321-7654321",
+      "room": "—",
+      "experience_years": 3,
+      "rating": 0,
+      "on_call": false,
+      "shift": "morning",
+      "created_at": "2026-10-22T12:11:41.448Z"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "u-lit8vjhi",
+      "role": "doctor",
+      "name": "Kavya Iyer (Demo)",
+      "email": "kavya.iyer@demo.carepulse",
+      "password_hash": "464eaef8b4b1003b5114c71ef8e4e4d4:354e0574f17fe1c7b47b8845469b4ed644beba8fa2ddbf23964a85b5169e34c87615f5ba09d2380109d257af54b17150a4e16a26d58c08c4d94ada75d50bfc78",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-w5xu2z",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-xpfcf2wr",
+      "role": "doctor",
+      "name": "Arjun Khanna (Demo)",
+      "email": "arjun.khanna@demo.carepulse",
+      "password_hash": "79566107a906cf22cb38a4de2a26a48c:a571d121612b49be88b391891aba30f5bae16244922e92a1c28995e4fa8b388ab5af1a5d64731a9b383859482222aeb35b313a988c19a0b771b10440b4b2e951",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-zhd8pg",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-pcntnjlh",
+      "role": "doctor",
+      "name": "Farhan Qureshi (Demo)",
+      "email": "farhan.qureshi@demo.carepulse",
+      "password_hash": "962cfea548202be53606837730327bac:b6665063f64ef1aac84a14a1889e8f7cc7357f5e0cfc6ddc1289f24f57ff914f3118600b74bf225b560593fdf4e24ffb7706880790e0974ebee827d59d908918",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-uocnjp",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-3q2xzq4t",
+      "role": "doctor",
+      "name": "Rakesh Talwar (Demo)",
+      "email": "rakesh.talwar@demo.carepulse",
+      "password_hash": "4517f60205e5eab0bdd5cefce47b6970:af6fa80a8ed0c1a60e9ce3b106c53bcaa3d8049bb42946d6a8b200657b8947e88f4d6d2a0ad539eb9d6118e4096dbe66a0a0f5781e29813cb2e4a020c78081af",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-4jculy",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-l3jkiizz",
+      "role": "doctor",
+      "name": "Nikhil Chandra (Demo)",
+      "email": "nikhil.chandra@demo.carepulse",
+      "password_hash": "ef08b79c49ba5c11afed469ab0a6d315:63664f882ae29883adda8c20715aa7e88f49c08857d194ee4b5f0abffa439d6743c7320b7e9479115060fec2ed2f99b6f0cbf6df908d0fccdbd7bea27259235f",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-92ute2",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-1oprrcxs",
+      "role": "doctor",
+      "name": "Joy Dutta (Demo)",
+      "email": "joy.dutta@demo.carepulse",
+      "password_hash": "ae03cc9965af9f666378072ed352e51b:5272620257ea09d9276f2969515d6db25536556dcb093ed28c71aa88ee05fc93c0e6c41069e57b09c11ddb319c4e85853bd324a3494d6bc8288d4649543a7283",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-ncpp08",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-ptzh85va",
+      "role": "doctor",
+      "name": "Sameer Joshi (Demo)",
+      "email": "sameer.joshi@demo.carepulse",
+      "password_hash": "baeb3fde40841c14562942ace7551e25:d1f22bb3dd3b65ecfed27998d1340b74a3088c02f28506e691058ae3c9872ce18b29d5c2821333a81bfec8b85d8ce4df870c82a1b180a4307adc1a78d6e0daa0",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-aqqhum",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-2ebkv6d4",
+      "role": "doctor",
+      "name": "Lakshmi Gupta (Demo)",
+      "email": "lakshmi.gupta@demo.carepulse",
+      "password_hash": "e62b4f12e2b62dff107ee27f01b54c3c:cf4b01a5ce5d23932195df6953ac2da17255c42f5fdbd5f6688d060f280f0b332278fef7481054312a8b33ed6a867978fcce4e46f817499069f53c8a7460dbff",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-emqx4c",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-fvcqdx6o",
+      "role": "doctor",
+      "name": "Ravi Subramanian (Demo)",
+      "email": "ravi.subramanian@demo.carepulse",
+      "password_hash": "a0e4bf019c573435bd3bbe3d42dce113:d2ea676d9bae5583924b7cb8f9e490a1045cb2a65f220052de772377e8fe1821939fb7caa48f1bdff1848521d734bcf6317c1fc3bc9f7f6198fd3e3baf7070ce",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-0kkjro",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-97b3bwek",
+      "role": "doctor",
+      "name": "Aditya Kulkarni (Demo)",
+      "email": "aditya.kulkarni@demo.carepulse",
+      "password_hash": "e85e2515bfee523a8509390d2d8a4d8a:5653c0385802f5ffe1c3f5af120e57d32b3c7e10fcdcd67679e090747e9a2b65ac2956f06da3ec4f0e04ec41a2f84ccd48364a5261c2413c88e1ec72e134e1f5",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-1c6laq",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-uvnjqvxl",
+      "role": "doctor",
+      "name": "Karan Malhotra (Demo)",
+      "email": "karan.malhotra@demo.carepulse",
+      "password_hash": "3b52d34e3b8a8436161345191dc35d61:cdfb60a9ddae81fa9636614044a38455b19ccc9f3b7a010e2781fa4ba75e9b4851947fb3f95b8bf1f9b3910aaf7ceb72930e899e081b08787d483bd11036db1d",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-x5ycvc",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-xukr5duv",
+      "role": "doctor",
+      "name": "Sanjay Purohit (Demo)",
+      "email": "sanjay.purohit@demo.carepulse",
+      "password_hash": "deab86fff0904a83f3b14c716b43c574:c3562d0bb295a2f9c9323f4ca414a3a8cceb3ccff9a77321d364889d10c26adc9d3fe155a6f5cb4fbea808ff88b65c16d3e63ae414bd0d599f58681a125976d8",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-yinqw6",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-2zbz6sho",
+      "role": "doctor",
+      "name": "Naveen Gounder (Demo)",
+      "email": "naveen.gounder@demo.carepulse",
+      "password_hash": "48447e62799fed00a9d18b7f5ca74e2b:c765a4c1b83c342a826ee4b4e9eeec64d5cf20dd8a18cfaec62d06411b55ef024b4d053cf19d988a638e56a865ebffcdcdc277da7d385c2c5c261273b58c8de6",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-zgxxtc",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-x7nsfnpx",
+      "role": "doctor",
+      "name": "Vivek Anand (Demo)",
+      "email": "vivek.anand@demo.carepulse",
+      "password_hash": "d7296a9ea4dc216fbf579f2c22b86244:087d05841ef6ee4c8880312615d7e9a14f915dd78e08b49504a90c88e4b59ad624abcf8f985cbbc0019367ce05b0253b820dd8707cec3df34a943a9d4098e14a",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-380w9u",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-5d0qc1bd",
+      "role": "doctor",
+      "name": "Rohit Chowdhury (Demo)",
+      "email": "rohit.chowdhury@demo.carepulse",
+      "password_hash": "553b4357d40f2b1a5215dc8689972362:7a6fefe40c2b026237989d6cbb631e0330a924693c1c3972661176595e3dfc99d580347eb6580b9543acae29c977acbc673eca625eece36e9afccd99ecece38a",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-pb2lws",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-r7knwvcr",
+      "role": "doctor",
+      "name": "Manish Tiwari (Demo)",
+      "email": "manish.tiwari@demo.carepulse",
+      "password_hash": "1d06b7dccffef8fbeecd4cd3bde077dc:f12308cebf44655ed24e8d3fe89193c60aebd16072842b74b802181b66351ad0a8fb5c9e9175625994470704882052fe8b196e31093bd69eb2e25d7a6da2e43c",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-jvzwrq",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-xlicldxx",
+      "role": "doctor",
+      "name": "Suresh Pillai (Demo)",
+      "email": "suresh.pillai@demo.carepulse",
+      "password_hash": "9e5964ca9a63d0d61800b59c0d1dfc51:ba0796a197554e01d48b24e9b878404e099db7316734a4bf3ae7ed2706e9313f27133ebd0812f7f53559fcad5547259bcd024756b498566abfe53563d7eb81b7",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-5x430z",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-ihbvhjhn",
+      "role": "doctor",
+      "name": "Arvind Swaminathan (Demo)",
+      "email": "arvind.swaminathan@demo.carepulse",
+      "password_hash": "8072512475f59ce301d918766a87e7da:2823b652ff80b2edf42f363dfb62c217f8527489665bcce444598217ab29427b2bde2ca73e05ff97df1d31eed8a3c388f160a9e4ec4262472e7298993ca5bde3",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-mhungq",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-yeu21zxe",
+      "role": "doctor",
+      "name": "Yash Bedi (Demo)",
+      "email": "yash.bedi@demo.carepulse",
+      "password_hash": "def5131b217001041d21589d1cb95db9:151e831bbabdf43dd917313e3400d0df9abbbfba12f3c04667a003d7d32744320085c50ad8cb04c8ef658ca38a3508b8b57ab2eef213a1af2035c494150c4280",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-1flbjo",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-goccrgx4",
+      "role": "doctor",
+      "name": "Prakash Naik (Demo)",
+      "email": "prakash.naik@demo.carepulse",
+      "password_hash": "622000bbebe7e8dc771be26d9c2f3f9c:25ba82c1cde3a8864230dec7d27bc567464f6c497087b6f2ec1f0ea78b371a1af93fcc37d5d1b907c479d9fd7f45b783510dca851ca41502da9b41ee0a2d7d9d",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-s6jbv4",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-t3p7whv4",
+      "role": "doctor",
+      "name": "Alok Trivedi (Demo)",
+      "email": "alok.trivedi@demo.carepulse",
+      "password_hash": "979beb8007d14bb258b6a44672f56259:a076477743485b388e9aec9b3d3f99af2bc7aab81404c775d66724aa68ac4131c4cc96bb878205f54a298c1eb5500a0fa610d051fb1ad2b475d0ecaa8cfca9a5",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-law1ro",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-upxxvnv3",
+      "role": "doctor",
+      "name": "Girish Paltani (Demo)",
+      "email": "girish.paltani@demo.carepulse",
+      "password_hash": "0e0774a5ad1df5aafc6bbed5cddd0889:3893fdcaa3cfc24d6f3313f14e551088e4a3de5c99eec8a02559c7cca92cb32f497ada7c08a3ff653dee0b8aa4929155daa2f713c254d54aa632e77499e444c5",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-6hagsa",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-ELBWPTJX",
+      "role": "patient",
+      "name": "reni",
+      "email": "reni@g.c",
+      "password_hash": "9d2f48814cc77499dee4dd699b7f4294:ab60c6f568bcae90da8182d0a46f4b3aa50e24531f0dc2d1852f241010eaf1b223f7b4dbadf1d7bfa0d4f2f53bb6b0bb5c780bdc1d56e16d5cfb13adaf6b7467",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": "P-_DX7JQ",
+      "doctor_id": null,
+      "created_at": "2026-10-22"
+    },
+    {
+      "id": "u-70xsf71y",
+      "role": "doctor",
+      "name": "Anil Mehta (Demo)",
+      "email": "anil.mehta@demo.carepulse",
+      "password_hash": "8c4ac949207ef74a85385fea17ed4b5f:0478c83d7f73b9ee9d35c25fdfcc8763e6fff3d4a213ad41f3e27e41128804e8aded84d9a28c190a245014a5b4d9ce1e78e321a5a0a23660e13c2c70cfb8c78f",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-h54x5v",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-6vjpe8v0",
+      "role": "doctor",
+      "name": "Sana Rao (Demo)",
+      "email": "sana.rao@demo.carepulse",
+      "password_hash": "20443e5bbd639fedef3d673628bd6ca5:170bc7f98d10e636e43c2e9c26649811b518e99deb7db86cfb0024fa81764aec322146aa455b37c8565aa54c94a965c0f9c920380f809e4d07634f374a055142",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-vgbcya",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-f1j6sc02",
+      "role": "patient",
+      "name": "Meera Iyer",
+      "email": "meera@demo.carepulse",
+      "password_hash": "c030a30e7cd865057788a90b65127a85:782b95ed5612bbadba80f33267aa9debc13339f8312a76c528cb295520bc68f2beda251c41fb14db938dfcb8c353a7043ec81c10f827b56126de141135f2dbd7",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": "P-ms6e4i",
+      "doctor_id": null,
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-emnoramf",
+      "role": "doctor",
+      "name": "Meera Deshpande (Demo)",
+      "email": "meera.deshpande@demo.carepulse",
+      "password_hash": "469cc12928728b865a322244082599f7:d6cab5b368f54af24c9403a8d9d3325d3b656ae646367e0d4a08d9d23d85c17510c064be3280f8bdccc1b237d78b33ade610ab20760327f13937340e929d991a",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-mtl3i9",
+      "created_at": "2026-10-13 16:00:42"
+    },
+    {
+      "id": "u-q4vfte5e",
+      "role": "doctor",
+      "name": "Rahul Nair (Demo)",
+      "email": "rahul.nair@demo.carepulse",
+      "password_hash": "7ac4087120d725cda57ffb361584f4b9:8a305024feaaa1cb0f3c498ce06adf5cd1c6e713b6cf3c867f957999963540fc669cc6f47ecb5184ad41e9c823abdd79fd1fd0dc815c4984d9127b26cb364231",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-5v7xab",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-xmhvfzn1",
+      "role": "doctor",
+      "name": "Vikram Sethi (Demo)",
+      "email": "vikram.sethi@demo.carepulse",
+      "password_hash": "0c81e945da0d118d7b6a93332e740a1c:6bb389f095518411d8eee21a71ab2f7366da8142d06f71350a496157043a8c663998c1a82efa61343d61c302a9d7849a77c311d74977cfae443cce191a0f9020",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-zcyuf2",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-oo5qyls5",
+      "role": "doctor",
+      "name": "Nisha Pillai (Demo)",
+      "email": "nisha.pillai@demo.carepulse",
+      "password_hash": "f402cbb424dbfda658a31ec99d1e90c2:87fd16e22c82a504a11a77fed38d576c709beba88b1d8bc0ae11a7412a544f81f970678b6a0ae32cd63bff442d2dca774262cd7cde971c2c1204da67a96b9d52",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-1ozzgr",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-hyu5bmac",
+      "role": "doctor",
+      "name": "Divya Menon (Demo)",
+      "email": "divya.menon@demo.carepulse",
+      "password_hash": "d3bf3453b5d2f9597d34ed315c3eb136:f41726cd3e2b825a7e2022064bab48c2bfe6b1eb8be72402f4e37709d673daea41fe0779bd664999c39c90daa27a8b2acdf61de9708ce728a5d0efdd1b7b07eb",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-n5b1ha",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-nboyzdpp",
+      "role": "doctor",
+      "name": "Anita Bose (Demo)",
+      "email": "anita.bose@demo.carepulse",
+      "password_hash": "1d6a44300ef80dbd4ca4c1860c962a4a:1deb82d0348e46d4aceae9a32737b7a027a9fc799413dd51a38778ee612d34d5a5fbcbbd423c4534d9af61dcd478c4fe01016b063b96adb69ce5ddd8164a99ba",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-wbwi3n",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-u8ii6jjz",
+      "role": "doctor",
+      "name": "Tara Malhotra (Demo)",
+      "email": "tara.malhotra@demo.carepulse",
+      "password_hash": "953444a1d30024ec5c7c8a3ed09ac1c5:66b7f1f6d96f234099d74080a5fd230241acf5cefdba0254dd361bc4b0394b6f720e14b9730f32c912a8be397ea1ad2d0399b188f7475a61fd65892ef8dd4bc8",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-733cup",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-e8gya8w2",
+      "role": "doctor",
+      "name": "Ritika Verma (Demo)",
+      "email": "ritika.verma@demo.carepulse",
+      "password_hash": "d0ea2d5d3ad0bf27a9d45ae10a22dd67:576f98c31be991dfe6930dbbb7e5ef548dd369fd1c204acb0101c20b879c1fca3a13f6980ec7f5ac2d9f153bc4cbda2672461dcc04b68b4842efa1a37ce87a67",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-bkq3kd",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-233ydtsr",
+      "role": "doctor",
+      "name": "Pooja Shah (Demo)",
+      "email": "pooja.shah@demo.carepulse",
+      "password_hash": "5a8f79ba4312704ce09c8eb1a5f157ef:505cb40ddf069fc5f5cc29a63aef9bd63ac96d8ab141cc6402a872e9ce922b03439b1f92a31946eab308d1475b6f48c8aa2b0816190622cca4a69a979f81407a",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-rojovf",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-a4zzdk8u",
+      "role": "doctor",
+      "name": "Imran Ali (Demo)",
+      "email": "imran.ali@demo.carepulse",
+      "password_hash": "4ab59fac66b56ec7285dd724fd75185c:634f2e18c19b8a948de1937213faf032198ecd21f89061adb7e9674fd9b46bd1b846998ef7c06fe9ae97410559ca92e7808d76ea22d179a040249d28f2f6220f",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-ld53ub",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-puyexa48",
+      "role": "doctor",
+      "name": "Priya Nambiar (Demo)",
+      "email": "priya.nambiar@demo.carepulse",
+      "password_hash": "b0f500c51ad6e3bf43a88ce8f2d7b286:efc5998b4f89d1fd08a869f16d69a68d37df68a4e17472cc90bf8361923d511ed95038512e0e40c1c51ebf7c181ee7cc3b6c3df03d13df48491682518d656b62",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-15r9h9",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-b0dgh0fp",
+      "role": "doctor",
+      "name": "Shruti Bhat (Demo)",
+      "email": "shruti.bhat@demo.carepulse",
+      "password_hash": "b2b6a9a909c3d817c106a1e458e2c4d3:1ee03f32379df3340acdffe083a3257b36005ba53d11ba927fc8d4e6195e399f5655fd23a72f36a731c0c8c1e82e5b0de4fbf45ac445ebfdd7812e164055b2fe",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-iw6zkp",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-7y2ritnx",
+      "role": "doctor",
+      "name": "Deepa Krishnan (Demo)",
+      "email": "deepa.krishnan@demo.carepulse",
+      "password_hash": "a248743f61ae8ebd44ed82f98816e2c7:b18afc9c9f37c7f2d68f74839b306533b581ec751bf37daf421ca1ba627d07fe9bb367f3c313a35af426047fc1e387851d6f9fb005c2b46831fa38697e6c7f72",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-r6g85i",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-4984iad8",
+      "role": "doctor",
+      "name": "Anjali Deshmukh (Demo)",
+      "email": "anjali.deshmukh@demo.carepulse",
+      "password_hash": "43b9edad23d8251561c5f3c5f2771822:3ea6adeb5a45999c8e6d2b41a1114bd61dea0f55ba130ef45d656a322f97d2e15c7884eb4402df60d8b115d502cf7a068aad9de042819296fc5077603045d036",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-l5ri7j",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-u3k8y5ro",
+      "role": "doctor",
+      "name": "Meenakshi Rajan (Demo)",
+      "email": "meenakshi.rajan@demo.carepulse",
+      "password_hash": "c4c4dc123a15799276e74d8ccd905196:1d7459500899ce2133bdc1e9c2a207bb2c7354068fde6b45847316e1727f15c442546f04b5a442c4d71707d1cdaf58caa3b71ae81fc0dbaea90376093e4ca080",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-q0f9ra",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-x824ddyu",
+      "role": "doctor",
+      "name": "Swati Jain (Demo)",
+      "email": "swati.jain@demo.carepulse",
+      "password_hash": "770d2449e5fd6975c6dda304d5df6e6b:6ab4cc0edc2b224eae71a2d26a520c0f908dafc6cf537de8acb100543ecae96c59ae4ef03df5647e5a22e57f1f8711d2fb0b269e32b5079097cecc42cfabad3f",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-5z6e6m",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-q0okmamc",
+      "role": "doctor",
+      "name": "Ishita Roy (Demo)",
+      "email": "ishita.roy@demo.carepulse",
+      "password_hash": "ad58e089636b595aedf44c5926c2fd96:ed87ecb9bbf7c033bfad86cc7d26cf42ab3fbfc17e8f8ed99abaa2a8f0c10aabc7ad12ff95d4620ef1f727ce09d3a8a64ed4eea4453ab50bdc042bac5ce18276",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-nezhuw",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-d1lu5gqm",
+      "role": "doctor",
+      "name": "Preeti Sahay (Demo)",
+      "email": "preeti.sahay@demo.carepulse",
+      "password_hash": "23a9497f5e428d4fb54c05666bee6d8e:a26435aaa7a5b6e25e1607275c6bc341c2949fb736868327f6cd6d8ef0e3950283e77eb8717f81cd5b1f01507ede08d8e2706507f39932b0cb3b449b71a81738",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-z67oue",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-uesiio53",
+      "role": "doctor",
+      "name": "Bhavana Naik (Demo)",
+      "email": "bhavana.naik@demo.carepulse",
+      "password_hash": "61a7a11a9a14ed675eee9983f3051a32:358f8e7bdc661da1e3a4cdc001e0bad73f4ce7e92b73afb03ef6950bdb0c636cd502893ae28583db124c79b61feab51dbf2ba00f1496ea14c566fbfed8cf75bd",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-8wjiza",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-cumxnk20",
+      "role": "doctor",
+      "name": "Nandini Iyer (Demo)",
+      "email": "nandini.iyer@demo.carepulse",
+      "password_hash": "20b7f3712b6853c494d2f2572990daea:1d9cf42fd72924b406090cd0cddad4bf421757a0e36d4ac07a7ce4c1f0396ba4a5b7d52da6623aa38c2fd6ab5cb13df2e271a34ead3abfda5e2ee21c59c2402a",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-jtgo94",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-p1c2uwgg",
+      "role": "doctor",
+      "name": "Ritu Sood (Demo)",
+      "email": "ritu.sood@demo.carepulse",
+      "password_hash": "ce558074cd3e0cf9e53dbc3a9c6036ad:4c55df2ab2623a836c4ea6e7878855f9f5c7e6547a44a3c991e0d9178022ac162b1a026e3b55194d90687a4a64dbfa4751a5af0bd8d977d39faa3ce701d02613",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-9l1ukt",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-7f0n1ibm",
+      "role": "doctor",
+      "name": "Vidya Menon (Demo)",
+      "email": "vidya.menon@demo.carepulse",
+      "password_hash": "250da21082daf5a997b75aab08f47144:8e9ae973287bfdb58241f667e7e91b686bea7a4e570075ac0969d3468141ac4d41b9e21b13375d41c7a16cdb28fa47b1fe3d920e110d4e08afd19cf953de5cba",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-b2rc58",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-rcr34f1r",
+      "role": "doctor",
+      "name": "Sneha Kulkarni (Demo)",
+      "email": "sneha.kulkarni@demo.carepulse",
+      "password_hash": "427038cb0a152fea80af1e0995263230:8b9c2358594df0a2b5c2b87b57579a347a12af9e3b445cd90e8a4bde8e0feb599088fd82212e16534bb046fc742aed3b9b1d6d72c32ef929021b67618405cbe0",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-2dhn7e",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-1mdds36t",
+      "role": "doctor",
+      "name": "Chhaya Trivedi (Demo)",
+      "email": "chhaya.trivedi@demo.carepulse",
+      "password_hash": "78189d1ebf78d86a6471211edc83115d:78d8464ef6e128f6b9c4698e31923f67b6348f7aba5344db01d6d998e1f0694ab0dc26e34e53695bcf3f0e0674dea150718b00dfa961e5bf669edc0cf98f4a23",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-8v8tiz",
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-ogzp8b81",
+      "role": "admin",
+      "name": "Hospital Administrator",
+      "email": "admin@carepulse.health",
+      "password_hash": "38d98081df0ec7c4b692138939f0732b:26591e739c71f130ea7f4bc66c731ab46f60c183b0e2c6d13f90e1c06feff62fc63aaed7588b30f872750f097a2de8530039c42347d916e0cbbf9c0cc41b265b",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": null,
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-6xdfwuca",
+      "role": "patient",
+      "name": "Rohit Sharma",
+      "email": "rohit@demo.carepulse",
+      "password_hash": "a0a051169813f4d630698d3a564d622d:0190a83715cd3f75439eb8b6db2d2220e6be723338ee0b12fa6af91d343d1d47f3e38099f967da6dc8d1b879790c5839568856396e3a9a0cb843c0da96310ea2",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": null,
+      "created_at": "2026-10-13 16:09:15"
+    },
+    {
+      "id": "u-XDDPLOQ4",
+      "role": "doctor",
+      "name": "reniD",
+      "email": "reni@c.c",
+      "password_hash": "6d5ac7a9f75a190975b82dc3ddf0b264:61faa8da43f622d712c487c905e28dbdaae62fa7dda47017b45d6f5b5138a99c8f7f7ec977c468fc4bc4828ae03b82660ef75865757d0637a67d4d51379c6768",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-K9FFLA",
+      "created_at": "2026-10-22"
+    },
+    {
+      "id": "u-4GIWC33Q",
+      "role": "admin",
+      "name": "reniadmin",
+      "email": "reni@a.c",
+      "password_hash": "3c7e3fe43c7c03d5c8731f5ecf51edc2:bea75a14d41b7590a17ad3c33b17e9c25611924eeb20f86d8ebc0eb73dfeda2f04fbda15e9231c3675cd610ee7a6e8a691b932d7c9c926f6b66a2b02e457eaf6",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": null,
+      "created_at": "2026-10-22"
+    },
+    {
+      "id": "u-RKUO_CAO",
+      "role": "doctor",
+      "name": "Dr Smoke Tester",
+      "email": "e2e-1792671099369-doctor@example.com",
+      "password_hash": "ffa618f524728ebe4ad036294d6dbf86:119ae6fb2e21da27265383e381b86db1b3052f5a6c233ce833b2ce86291241aef5824bc14f3ee97485eb86ae48663054c6529fc2353712f40e046309b1bea868",
+      "salt": null,
+      "hash_algo": "scrypt",
+      "patient_id": null,
+      "doctor_id": "D-W_EFGX",
+      "created_at": "2026-10-22"
+    }
+  ],
+  "appointments": [
+    {
+      "id": "A-kmwc0o",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": "D-h54x5v",
+      "date": "2026-10-20",
+      "time": "10:30",
+      "duration_min": 30,
+      "reason": "Follow-up: blood pressure management",
+      "status": "cancelled",
+      "queue_status": null,
+      "notes": "",
+      "created_at": "1791907793985"
+    },
+    {
+      "id": "A-JH65M8",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": "D-4jculy",
+      "date": "2026-10-20",
+      "time": "09:00",
+      "duration_min": 30,
+      "reason": "General consultation",
+      "status": "cancelled",
+      "queue_status": null,
+      "notes": null,
+      "created_at": "1792403868885"
+    },
+    {
+      "id": "A-vpbjq8",
+      "patient_id": "P-ms6e4i",
+      "doctor_id": "D-h54x5v",
+      "date": "2026-10-20",
+      "time": "10:30",
+      "duration_min": 30,
+      "reason": "Wheezing episodes review",
+      "status": "cancelled",
+      "queue_status": null,
+      "notes": "",
+      "created_at": "1791907795434"
+    },
+    {
+      "id": "A-2SOTJC",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": "D-4jculy",
+      "date": "2026-10-20",
+      "time": "14:00",
+      "duration_min": 30,
+      "reason": "New symptom",
+      "status": "completed",
+      "queue_status": "completed",
+      "notes": null,
+      "created_at": "1792482186830"
+    },
+    {
+      "id": "A-H1TCSH",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": "D-4jculy",
+      "date": "2026-10-21",
+      "time": "09:30",
+      "duration_min": 30,
+      "reason": "General consultation",
+      "status": "cancelled",
+      "queue_status": null,
+      "notes": null,
+      "created_at": "1792484904612"
+    }
+  ],
+  "prescriptions": [
+    {
+      "id": "RX-gmp3ib",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": "D-4jculy",
+      "date": "2026-09-29",
+      "items": "[{\"drug\":\"Amlodipine\",\"dosage\":\"5 mg\",\"frequency\":\"Once daily\",\"durationDays\":30,\"instructions\":\"After breakfast\"}]",
+      "active": true
+    },
+    {
+      "id": "RX-bqklo0",
+      "patient_id": "P-ms6e4i",
+      "doctor_id": "D-4jculy",
+      "date": "2026-09-29",
+      "items": "[{\"drug\":\"Salbutamol inhaler\",\"dosage\":\"2 puffs\",\"frequency\":\"As needed\",\"durationDays\":30,\"instructions\":\"Rinse mouth after use\"}]",
+      "active": true
+    },
+    {
+      "id": "RX-U_URSF",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": "D-4jculy",
+      "date": "2026-10-20",
+      "items": [
+        {
+          "drug": "dedd",
+          "dosage": "10",
+          "frequency": "Once daily",
+          "durationDays": 30
+        }
+      ],
+      "active": true
+    }
+  ],
+  "visits": [
+    {
+      "id": "V-b2niz1",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": "D-4jculy",
+      "date": "2026-09-29",
+      "department": "General Medicine",
+      "diagnosis": "Stage-1 hypertension, controlled",
+      "notes": "Discussed salt restriction and started home BP diary.",
+      "vitals": "{\"bp\":\"128/84\",\"hr\":78,\"tempC\":36.8,\"spo2\":98,\"weightKg\":72}"
+    },
+    {
+      "id": "V-w4sf8o",
+      "patient_id": "P-ms6e4i",
+      "doctor_id": "D-4jculy",
+      "date": "2026-09-29",
+      "department": "General Medicine",
+      "diagnosis": "Mild asthma, seasonal exacerbation",
+      "notes": "Advised trigger avoidance; rescue inhaler as needed.",
+      "vitals": "{\"bp\":\"128/84\",\"hr\":78,\"tempC\":36.8,\"spo2\":98,\"weightKg\":72}"
+    },
+    {
+      "id": "V-T1UYQN",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": "D-4jculy",
+      "date": "2026-10-20",
+      "department": "General Medicine",
+      "diagnosis": "Zz",
+      "notes": "",
+      "vitals": {
+        "bp": "120/80",
+        "hr": 72,
+        "spo2": 98,
+        "tempC": 36.8,
+        "weightKg": 70
+      }
+    }
+  ],
+  "invoices": [
+    {
+      "id": "INV-413gsc",
+      "patient_id": "P-4jc2ms",
+      "appointment_id": null,
+      "date": "2026-09-29",
+      "due_date": "2026-10-28",
+      "items": "[{\"label\":\"General Medicine consultation\",\"amount\":150},{\"label\":\"ECG\",\"amount\":120}]",
+      "status": "paid",
+      "paid_at": "2026-10-13 16:09:54.17352+00"
+    },
+    {
+      "id": "INV-csufbn",
+      "patient_id": "P-ms6e4i",
+      "appointment_id": null,
+      "date": "2026-09-29",
+      "due_date": "2026-10-28",
+      "items": "[{\"label\":\"General Medicine consultation\",\"amount\":150},{\"label\":\"ECG\",\"amount\":120}]",
+      "status": "paid",
+      "paid_at": "2026-10-13 16:09:55.598337+00"
+    },
+    {
+      "id": "INV-KLX6OS",
+      "patient_id": "P-4jc2ms",
+      "appointment_id": "A-JH65M8",
+      "date": "2026-10-20",
+      "due_date": "2026-11-02",
+      "items": [
+        {
+          "label": "General Medicine consultation",
+          "amount": 150
+        }
+      ],
+      "status": "paid",
+      "paid_at": "2026-10-19"
+    },
+    {
+      "id": "INV-DMYSBU",
+      "patient_id": "P-4jc2ms",
+      "appointment_id": "A-2SOTJC",
+      "date": "2026-10-20",
+      "due_date": "2026-11-03",
+      "items": [
+        {
+          "label": "General Medicine consultation",
+          "amount": 150
+        }
+      ],
+      "status": "paid",
+      "paid_at": "2026-10-20"
+    },
+    {
+      "id": "INV-JRMH_M",
+      "patient_id": "P-4jc2ms",
+      "appointment_id": "A-H1TCSH",
+      "date": "2026-10-21",
+      "due_date": "2026-11-03",
+      "items": [
+        {
+          "label": "General Medicine consultation",
+          "amount": 150
+        }
+      ],
+      "status": "pending",
+      "paid_at": null
+    }
+  ],
+  "labs": [],
+  "leaves": [],
+  "wards": [
+    {
+      "id": "w2",
+      "name": "Maternity",
+      "floor": 3,
+      "rooms": [
+        {
+          "id": "w2-r1",
+          "beds": [
+            {
+              "id": "w2-r1-b1",
+              "label": "301-A"
+            }
+          ],
+          "type": "private",
+          "label": "301"
+        },
+        {
+          "id": "w2-r2",
+          "beds": [
+            {
+              "id": "w2-r2-b1",
+              "label": "302-A"
+            }
+          ],
+          "type": "private",
+          "label": "302"
+        },
+        {
+          "id": "w2-r3",
+          "beds": [
+            {
+              "id": "w2-r3-b1",
+              "label": "303-A"
+            },
+            {
+              "id": "w2-r3-b2",
+              "label": "303-B"
+            }
+          ],
+          "type": "semi-private",
+          "label": "303"
+        }
+      ]
+    },
+    {
+      "id": "w1",
+      "name": "General Care",
+      "floor": 2,
+      "rooms": [
+        {
+          "id": "w1-r1",
+          "beds": [
+            {
+              "id": "w1-r1-b1",
+              "label": "201-A"
+            }
+          ],
+          "type": "private",
+          "label": "201"
+        },
+        {
+          "id": "w1-r2",
+          "beds": [
+            {
+              "id": "w1-r2-b1",
+              "label": "202-A",
+              "since": "2026-10-19",
+              "patientId": "P-4jc2ms"
+            },
+            {
+              "id": "w1-r2-b2",
+              "label": "202-B"
+            }
+          ],
+          "type": "semi-private",
+          "label": "202"
+        },
+        {
+          "id": "w1-r3",
+          "beds": [
+            {
+              "id": "w1-r3-b1",
+              "label": "203-A"
+            },
+            {
+              "id": "w1-r3-b2",
+              "label": "203-B"
+            }
+          ],
+          "type": "semi-private",
+          "label": "203"
+        },
+        {
+          "id": "w1-r4",
+          "beds": [
+            {
+              "id": "w1-r4-b1",
+              "label": "204-A"
+            }
+          ],
+          "type": "private",
+          "label": "204"
+        }
+      ]
+    },
+    {
+      "id": "w3",
+      "name": "Intensive Care",
+      "floor": 4,
+      "rooms": [
+        {
+          "id": "w3-r1",
+          "beds": [
+            {
+              "id": "w3-r1-b1",
+              "label": "ICU-1A",
+              "since": "2026-10-19",
+              "patientId": "P-ms6e4i"
+            }
+          ],
+          "type": "icu",
+          "label": "ICU-1"
+        },
+        {
+          "id": "w3-r2",
+          "beds": [
+            {
+              "id": "w3-r2-b1",
+              "label": "ICU-2A"
+            }
+          ],
+          "type": "icu",
+          "label": "ICU-2"
+        },
+        {
+          "id": "w3-r3",
+          "beds": [
+            {
+              "id": "w3-r3-b1",
+              "label": "ICU-3A"
+            }
+          ],
+          "type": "icu",
+          "label": "ICU-3"
+        }
+      ]
+    }
+  ],
+  "sessions": [
+    {
+      "token": "4b6d5333d2abc87719d857e312e43f40ee440769256e829a7e3e9d9ab999149d",
+      "account_id": "u-ogzp8b81",
+      "created_at": "2026-10-13T16:13:17.598Z",
+      "expires_at": "2026-11-12T16:13:17.881Z"
+    },
+    {
+      "token": "bd22a1507c17a85dee1c755a14be9977ba84ad34b44df0e44f11801796a5a2f1",
+      "account_id": "u-3q2xzq4t",
+      "created_at": "2026-10-13T16:13:18.498Z",
+      "expires_at": "2026-11-12T16:13:18.786Z"
+    },
+    {
+      "token": "ef7f82ef1e7b2e6438146fe8a8828e0c2ddf8a9a4653aca1c89e82126a04c459",
+      "account_id": "u-6xdfwuca",
+      "created_at": "2026-10-13T16:13:19.328Z",
+      "expires_at": "2026-11-12T16:13:19.630Z"
+    },
+    {
+      "token": "d5c45292d402f396d999550dadcc7547b549e74d4cb771d672ccc2edcaca3248",
+      "account_id": "u-ogzp8b81",
+      "created_at": "2026-10-13T16:24:42.053Z",
+      "expires_at": "2026-11-12T16:24:42.244Z"
+    },
+    {
+      "token": "378d357b7dd0a2f8a33ef7096e9849fa7dec70061f34d271075e2e99a3099da9",
+      "account_id": "u-ogzp8b81",
+      "created_at": "2026-10-19T13:08:01.611Z",
+      "expires_at": "2026-11-18T13:08:01.700Z"
+    },
+    {
+      "token": "4bebdc3ab13a183046b040e71399819dadb060156eca275531bf915fc0df32cf",
+      "account_id": "u-6xdfwuca",
+      "created_at": "2026-10-19T13:08:04.586Z",
+      "expires_at": "2026-11-18T13:08:04.669Z"
+    },
+    {
+      "token": "fbe16ec168a28eda5eb841ca69c2295d91f9434df372afd253e034eafae2d630",
+      "account_id": "u-ogzp8b81",
+      "created_at": "2026-10-19T13:08:05.466Z",
+      "expires_at": "2026-11-18T13:08:05.549Z"
+    },
+    {
+      "token": "bb52f52dff92fc68acd1f7755cdb5c72e47ab222dcce08ebfffef7f1674cb457",
+      "account_id": "u-6xdfwuca",
+      "created_at": "2026-10-19T13:20:12.332Z",
+      "expires_at": "2026-11-18T13:20:12.427Z"
+    },
+    {
+      "token": "203ae443f9f2e75740ee37f184fc92c882906e196d6aa51407a82538fad86b0d",
+      "account_id": "u-ogzp8b81",
+      "created_at": "2026-10-19T13:32:33.384Z",
+      "expires_at": "2026-11-18T13:32:33.492Z"
+    },
+    {
+      "token": "169a3304d80c486b19bf306567dd805b2b3f70c4c9737b69f29f3c5e5e032908",
+      "account_id": "u-6xdfwuca",
+      "created_at": "2026-10-19T13:32:36.764Z",
+      "expires_at": "2026-11-18T13:32:36.853Z"
+    },
+    {
+      "token": "190ee94387857dbcc2d483dd52ffe366282e707bd072a5b01d611e9e5ff6a41a",
+      "account_id": "u-ogzp8b81",
+      "created_at": "2026-10-19T13:32:37.704Z",
+      "expires_at": "2026-11-18T13:32:37.816Z"
+    },
+    {
+      "token": "974ec05f56fa97ba691b24347e0a746d797e690e23d80d51d1666339d75bf880",
+      "account_id": "u-ogzp8b81",
+      "created_at": "2026-10-20T08:34:14.034Z",
+      "expires_at": "2026-11-19T08:34:14.195Z"
+    },
+    {
+      "token": "a246f8fe149c31816a773318f70a939c0808cf7cfda16d9ed0606adc8e81e836",
+      "account_id": "u-6xdfwuca",
+      "created_at": "2026-10-20T08:34:17.159Z",
+      "expires_at": "2026-11-19T08:34:17.298Z"
+    },
+    {
+      "token": "7b01d4d5f939fe1046f35c5e1bbf6b5598b0576d0113591c0d2e3c35b52c4835",
+      "account_id": "u-ogzp8b81",
+      "created_at": "2026-10-20T08:34:18.104Z",
+      "expires_at": "2026-11-19T08:34:18.254Z"
+    },
+    {
+      "token": "1e91cde6378646afa2eb7a40976954452cc8a324ef2416fbc168446ef9f18615",
+      "account_id": "u-ogzp8b81",
+      "created_at": "2026-10-20T08:49:52.389Z",
+      "expires_at": "2026-11-19T08:49:52.474Z"
+    },
+    {
+      "token": "0a0ac17be2896e53b287d416b6d36cd1d3d6b67cf1ed1eeef06b756e58e0686d",
+      "account_id": "u-6xdfwuca",
+      "created_at": "2026-10-20T08:49:56.184Z",
+      "expires_at": "2026-11-19T08:49:56.277Z"
+    },
+    {
+      "token": "96647f35a5190e4ab79f735471c913e9df65583ded50320d58de3cd63b64b4ac",
+      "account_id": "u-ogzp8b81",
+      "created_at": "2026-10-20T08:49:56.840Z",
+      "expires_at": "2026-11-19T08:49:56.928Z"
+    },
+    {
+      "token": "e2dc516e8825a4b158ac5255f4a33f88e17d9ab1e785d3f7c9608686f8c5f9a6",
+      "account_id": "u-4GIWC33Q",
+      "created_at": "2026-10-22T11:40:09.990Z",
+      "expires_at": "2026-11-21T11:40:09.875Z"
+    },
+    {
+      "token": "d68905806b0b5bf862b05e00255ef8729fa6b7e7b2dd1e8e5a5bf7c54ba3e139",
+      "account_id": "u-RKUO_CAO",
+      "created_at": "2026-10-22T12:11:41.788Z",
+      "expires_at": "2026-11-21T12:11:42.058Z"
+    }
+  ],
+  "audit_logs": [
+    {
+      "id": "AL-4XFDV83DIX",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "create",
+      "entity": "symptom-assessment",
+      "entity_id": "SA-MFJAOJ",
+      "detail": "urgency=emergency dept=Emergency Center patient=unlinked",
+      "at": "2026-10-19T13:08:03.031Z"
+    },
+    {
+      "id": "AL-CYZN3ODBCT",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "create",
+      "entity": "symptom-assessment",
+      "entity_id": "SA-UBIC0Z",
+      "detail": "urgency=routine dept=Dermatology patient=unlinked",
+      "at": "2026-10-19T13:08:03.691Z"
+    },
+    {
+      "id": "AL-8NALQXNZUE",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=all visits=1",
+      "at": "2026-10-19T13:08:07.843Z"
+    },
+    {
+      "id": "AL-TRUG7_5GIT",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=year visits=1",
+      "at": "2026-10-19T13:08:08.671Z"
+    },
+    {
+      "id": "AL-DO9SLLRRO7",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=custom visits=0",
+      "at": "2026-10-19T13:08:09.523Z"
+    },
+    {
+      "id": "AL-D0DHW4-8OF",
+      "actor_id": "u-6xdfwuca",
+      "actor_name": "Rohit Sharma",
+      "actor_role": "patient",
+      "action": "create",
+      "entity": "symptom-assessment",
+      "entity_id": "SA-CKQFU0",
+      "detail": "urgency=routine dept=Dermatology patient=P-4jc2ms",
+      "at": "2026-10-19T13:23:27.346Z"
+    },
+    {
+      "id": "AL-FZ_G9_PWUO",
+      "actor_id": "u-6xdfwuca",
+      "actor_name": "Rohit Sharma",
+      "actor_role": "patient",
+      "action": "create",
+      "entity": "symptom-assessment",
+      "entity_id": "SA-S_1QW1",
+      "detail": "urgency=emergency dept=Emergency Center patient=P-4jc2ms",
+      "at": "2026-10-19T13:25:44.186Z"
+    },
+    {
+      "id": "AL-57SGSU2PPH",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "create",
+      "entity": "symptom-assessment",
+      "entity_id": "SA-XBSXRH",
+      "detail": "urgency=emergency dept=Emergency Center patient=unlinked",
+      "at": "2026-10-19T13:32:34.970Z"
+    },
+    {
+      "id": "AL-3-HTFMANKS",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "create",
+      "entity": "symptom-assessment",
+      "entity_id": "SA-5ZZGM1",
+      "detail": "urgency=routine dept=Dermatology patient=unlinked",
+      "at": "2026-10-19T13:32:35.679Z"
+    },
+    {
+      "id": "AL-LECTLNW7W8",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=all visits=1",
+      "at": "2026-10-19T13:32:40.367Z"
+    },
+    {
+      "id": "AL-TOMF_IYX-P",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=year visits=1",
+      "at": "2026-10-19T13:32:41.289Z"
+    },
+    {
+      "id": "AL-EWHYKL30YL",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=custom visits=0",
+      "at": "2026-10-19T13:32:42.187Z"
+    },
+    {
+      "id": "AL-SB0OD_PGQA",
+      "actor_id": "u-6xdfwuca",
+      "actor_name": "Rohit Sharma",
+      "actor_role": "patient",
+      "action": "create",
+      "entity": "symptom-assessment",
+      "entity_id": "SA-0SLG00",
+      "detail": "urgency=routine dept=Emergency Center patient=P-4jc2ms",
+      "at": "2026-10-20T07:34:48.080Z"
+    },
+    {
+      "id": "AL-XV2RJN58PO",
+      "actor_id": "u-6xdfwuca",
+      "actor_name": "Rohit Sharma",
+      "actor_role": "patient",
+      "action": "create",
+      "entity": "symptom-assessment",
+      "entity_id": "SA-ONX8S7",
+      "detail": "urgency=routine dept=General Medicine patient=P-4jc2ms",
+      "at": "2026-10-20T07:38:02.288Z"
+    },
+    {
+      "id": "AL-XKF5PJTJLL",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "create",
+      "entity": "symptom-assessment",
+      "entity_id": "SA-IFI4T4",
+      "detail": "urgency=emergency dept=Emergency Center patient=unlinked",
+      "at": "2026-10-20T08:34:15.517Z"
+    },
+    {
+      "id": "AL-MGBPCL4LTY",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "create",
+      "entity": "symptom-assessment",
+      "entity_id": "SA-0Y6OOZ",
+      "detail": "urgency=routine dept=Dermatology patient=unlinked",
+      "at": "2026-10-20T08:34:16.229Z"
+    },
+    {
+      "id": "AL-HH612OOXCV",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=all visits=1",
+      "at": "2026-10-20T08:34:21.298Z"
+    },
+    {
+      "id": "AL-OLNABHOF6Y",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=year visits=1",
+      "at": "2026-10-20T08:34:22.114Z"
+    },
+    {
+      "id": "AL-7QDDRIQHR3",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=custom visits=0",
+      "at": "2026-10-20T08:34:22.913Z"
+    },
+    {
+      "id": "AL-UZCFEIZXDJ",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=all visits=1",
+      "at": "2026-10-20T08:50:00.180Z"
+    },
+    {
+      "id": "AL-2EDJCA0R2V",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=year visits=1",
+      "at": "2026-10-20T08:50:01.267Z"
+    },
+    {
+      "id": "AL-U37QCIFX0W",
+      "actor_id": "u-ogzp8b81",
+      "actor_name": "Hospital Administrator",
+      "actor_role": "admin",
+      "action": "view",
+      "entity": "patient-history",
+      "entity_id": "P-ms6e4i",
+      "detail": "period=custom visits=0",
+      "at": "2026-10-20T08:50:02.419Z"
+    },
+    {
+      "id": "AL-0F9EKO5DWF",
+      "actor_id": "u-6xdfwuca",
+      "actor_name": "Rohit Sharma",
+      "actor_role": "patient",
+      "action": "create",
+      "entity": "symptom-assessment",
+      "entity_id": "SA-3BQPWY",
+      "detail": "urgency=routine dept=Neurology patient=P-4jc2ms",
+      "at": "2026-10-22T11:18:24.874Z"
+    }
+  ],
+  "emergency_cases": [],
+  "bed_audit": [],
+  "beds": [
+    {
+      "id": "w2-r1-b1",
+      "label": "301-A",
+      "ward_id": "w2",
+      "ward_name": "Maternity",
+      "floor": 3,
+      "room_id": "w2-r1",
+      "room_label": "301",
+      "type": "private",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w2-r2-b1",
+      "label": "302-A",
+      "ward_id": "w2",
+      "ward_name": "Maternity",
+      "floor": 3,
+      "room_id": "w2-r2",
+      "room_label": "302",
+      "type": "private",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w2-r3-b1",
+      "label": "303-A",
+      "ward_id": "w2",
+      "ward_name": "Maternity",
+      "floor": 3,
+      "room_id": "w2-r3",
+      "room_label": "303",
+      "type": "semi-private",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w2-r3-b2",
+      "label": "303-B",
+      "ward_id": "w2",
+      "ward_name": "Maternity",
+      "floor": 3,
+      "room_id": "w2-r3",
+      "room_label": "303",
+      "type": "semi-private",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w1-r1-b1",
+      "label": "201-A",
+      "ward_id": "w1",
+      "ward_name": "General Care",
+      "floor": 2,
+      "room_id": "w1-r1",
+      "room_label": "201",
+      "type": "private",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w1-r2-b1",
+      "label": "202-A",
+      "ward_id": "w1",
+      "ward_name": "General Care",
+      "floor": 2,
+      "room_id": "w1-r2",
+      "room_label": "202",
+      "type": "semi-private",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w1-r2-b2",
+      "label": "202-B",
+      "ward_id": "w1",
+      "ward_name": "General Care",
+      "floor": 2,
+      "room_id": "w1-r2",
+      "room_label": "202",
+      "type": "semi-private",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w1-r3-b1",
+      "label": "203-A",
+      "ward_id": "w1",
+      "ward_name": "General Care",
+      "floor": 2,
+      "room_id": "w1-r3",
+      "room_label": "203",
+      "type": "semi-private",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w1-r3-b2",
+      "label": "203-B",
+      "ward_id": "w1",
+      "ward_name": "General Care",
+      "floor": 2,
+      "room_id": "w1-r3",
+      "room_label": "203",
+      "type": "semi-private",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w1-r4-b1",
+      "label": "204-A",
+      "ward_id": "w1",
+      "ward_name": "General Care",
+      "floor": 2,
+      "room_id": "w1-r4",
+      "room_label": "204",
+      "type": "private",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w3-r1-b1",
+      "label": "ICU-1A",
+      "ward_id": "w3",
+      "ward_name": "Intensive Care",
+      "floor": 4,
+      "room_id": "w3-r1",
+      "room_label": "ICU-1",
+      "type": "icu",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w3-r2-b1",
+      "label": "ICU-2A",
+      "ward_id": "w3",
+      "ward_name": "Intensive Care",
+      "floor": 4,
+      "room_id": "w3-r2",
+      "room_label": "ICU-2",
+      "type": "icu",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    },
+    {
+      "id": "w3-r3-b1",
+      "label": "ICU-3A",
+      "ward_id": "w3",
+      "ward_name": "Intensive Care",
+      "floor": 4,
+      "room_id": "w3-r3",
+      "room_label": "ICU-3",
+      "type": "icu",
+      "status": "available",
+      "patient_id": null,
+      "occupied_since": null,
+      "reserved_for": null,
+      "reserved_at": null,
+      "last_status_change": "2026-10-19T09:53:48.856Z"
+    }
+  ],
+  "symptom_assessments": [
+    {
+      "id": "SA-MFJAOJ",
+      "patient_id": "unlinked",
+      "doctor_id": null,
+      "transcript": "I have chest discomfort, shortness of breath, dizziness, sweating, fatigue, nausea, and pain in my left arm since this morning.",
+      "input_mode": "voice",
+      "extracted": {
+        "negated": [],
+        "version": "carepulse-analysis-v2",
+        "duration": "since this morning",
+        "severity": null,
+        "symptoms": [
+          {
+            "name": "chest discomfort",
+            "text": "i have chest discomfort",
+            "negated": false
+          },
+          {
+            "name": "shortness of breath",
+            "text": "shortness of breath",
+            "negated": false
+          },
+          {
+            "name": "dizziness",
+            "text": "dizziness",
+            "negated": false
+          },
+          {
+            "name": "sweating",
+            "text": "sweating",
+            "negated": false
+          },
+          {
+            "name": "fatigue",
+            "text": "fatigue",
+            "negated": false
+          },
+          {
+            "name": "nausea",
+            "text": "nausea",
+            "negated": false
+          },
+          {
+            "name": "left arm pain",
+            "text": "pain in my left arm since this morning",
+            "negated": false,
+            "duration": "since this morning"
+          }
+        ]
+      },
+      "suggested_department": "Emergency Center",
+      "alternative_departments": [
+        "General Medicine",
+        "Neurology"
+      ],
+      "urgency": "emergency",
+      "urgency_note": "Chest discomfort together with breathing difficulty can indicate a cardiac emergency.",
+      "follow_up_questions": [],
+      "engine": "carepulse-analysis-v2",
+      "review_outcome": null,
+      "review_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "created_at": "2026-10-19T13:08:02.871Z"
+    },
+    {
+      "id": "SA-UBIC0Z",
+      "patient_id": "unlinked",
+      "doctor_id": "D-zcyuf2",
+      "transcript": "I have a skin rash and itching but no fever.",
+      "input_mode": "text",
+      "extracted": {
+        "negated": [
+          "fever"
+        ],
+        "version": "carepulse-analysis-v2",
+        "duration": null,
+        "severity": null,
+        "symptoms": [
+          {
+            "name": "skin rash/itching",
+            "text": "i have a skin rash",
+            "negated": false
+          }
+        ]
+      },
+      "suggested_department": "Dermatology",
+      "alternative_departments": [
+        "General Medicine",
+        "Pediatrics"
+      ],
+      "urgency": "routine",
+      "urgency_note": "No emergency indicators found.",
+      "follow_up_questions": [
+        {
+          "id": "duration",
+          "reason": "Duration helps the doctor judge urgency.",
+          "question": "How long have you had these symptoms?"
+        },
+        {
+          "id": "severity",
+          "reason": "Severity helps the doctor judge urgency.",
+          "question": "How bad is the most bothersome symptom (mild / moderate / severe, or a number out of 10)?"
+        }
+      ],
+      "engine": "carepulse-analysis-v2",
+      "review_outcome": null,
+      "review_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "created_at": "2026-10-19T13:08:03.526Z"
+    },
+    {
+      "id": "SA-CKQFU0",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": "D-zcyuf2",
+      "transcript": "I have a skin rash and itching on my arm for two days, but no fever.",
+      "input_mode": "text",
+      "extracted": {
+        "negated": [
+          "fever"
+        ],
+        "version": "carepulse-analysis-v2",
+        "duration": null,
+        "severity": null,
+        "symptoms": [
+          {
+            "name": "skin rash/itching",
+            "text": "i have a skin rash",
+            "negated": false
+          }
+        ]
+      },
+      "suggested_department": "Dermatology",
+      "alternative_departments": [
+        "Pediatrics",
+        "General Medicine"
+      ],
+      "urgency": "routine",
+      "urgency_note": "No emergency indicators found.",
+      "follow_up_questions": [
+        {
+          "id": "duration",
+          "reason": "Duration helps the doctor judge urgency.",
+          "question": "How long have you had these symptoms?"
+        },
+        {
+          "id": "severity",
+          "reason": "Severity helps the doctor judge urgency.",
+          "question": "How bad is the most bothersome symptom (mild / moderate / severe, or a number out of 10)?"
+        }
+      ],
+      "engine": "carepulse-analysis-v2",
+      "review_outcome": null,
+      "review_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "created_at": "2026-10-19T13:23:27.166Z"
+    },
+    {
+      "id": "SA-S_1QW1",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": null,
+      "transcript": "I have chest discomfort and difficulty breathing since this morning, and I also feel dizzy, my arm hurts, I am sweating a lot, I feel nauseous and very tired.",
+      "input_mode": "text",
+      "extracted": {
+        "negated": [],
+        "version": "carepulse-analysis-v2",
+        "duration": "since this morning",
+        "severity": null,
+        "symptoms": [
+          {
+            "name": "chest discomfort",
+            "text": "i have chest discomfort",
+            "negated": false
+          },
+          {
+            "name": "shortness of breath",
+            "text": "difficulty breathing since this morning",
+            "negated": false,
+            "duration": "since this morning"
+          },
+          {
+            "name": "dizziness",
+            "text": "feel dizzy",
+            "negated": false
+          },
+          {
+            "name": "sweating",
+            "text": "i am sweating a lot",
+            "negated": false
+          }
+        ]
+      },
+      "suggested_department": "Emergency Center",
+      "alternative_departments": [
+        "Cardiology",
+        "General Medicine"
+      ],
+      "urgency": "emergency",
+      "urgency_note": "Chest discomfort together with breathing difficulty can indicate a cardiac emergency.",
+      "follow_up_questions": [],
+      "engine": "carepulse-analysis-v2",
+      "review_outcome": null,
+      "review_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "created_at": "2026-10-19T13:25:44.006Z"
+    },
+    {
+      "id": "SA-XBSXRH",
+      "patient_id": "unlinked",
+      "doctor_id": null,
+      "transcript": "I have chest discomfort, shortness of breath, dizziness, sweating, fatigue, nausea, and pain in my left arm since this morning.",
+      "input_mode": "voice",
+      "extracted": {
+        "negated": [],
+        "version": "carepulse-analysis-v2",
+        "duration": "since this morning",
+        "severity": null,
+        "symptoms": [
+          {
+            "name": "chest discomfort",
+            "text": "i have chest discomfort",
+            "negated": false
+          },
+          {
+            "name": "shortness of breath",
+            "text": "shortness of breath",
+            "negated": false
+          },
+          {
+            "name": "dizziness",
+            "text": "dizziness",
+            "negated": false
+          },
+          {
+            "name": "sweating",
+            "text": "sweating",
+            "negated": false
+          },
+          {
+            "name": "fatigue",
+            "text": "fatigue",
+            "negated": false
+          },
+          {
+            "name": "nausea",
+            "text": "nausea",
+            "negated": false
+          },
+          {
+            "name": "left arm pain",
+            "text": "pain in my left arm since this morning",
+            "negated": false,
+            "duration": "since this morning"
+          }
+        ]
+      },
+      "suggested_department": "Emergency Center",
+      "alternative_departments": [
+        "General Medicine",
+        "Neurology"
+      ],
+      "urgency": "emergency",
+      "urgency_note": "Chest discomfort together with breathing difficulty can indicate a cardiac emergency.",
+      "follow_up_questions": [],
+      "engine": "carepulse-analysis-v2",
+      "review_outcome": null,
+      "review_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "created_at": "2026-10-19T13:32:34.785Z"
+    },
+    {
+      "id": "SA-5ZZGM1",
+      "patient_id": "unlinked",
+      "doctor_id": "D-zcyuf2",
+      "transcript": "I have a skin rash and itching but no fever.",
+      "input_mode": "text",
+      "extracted": {
+        "negated": [
+          "fever"
+        ],
+        "version": "carepulse-analysis-v2",
+        "duration": null,
+        "severity": null,
+        "symptoms": [
+          {
+            "name": "skin rash/itching",
+            "text": "i have a skin rash",
+            "negated": false
+          }
+        ]
+      },
+      "suggested_department": "Dermatology",
+      "alternative_departments": [
+        "General Medicine",
+        "Pediatrics"
+      ],
+      "urgency": "routine",
+      "urgency_note": "No emergency indicators found.",
+      "follow_up_questions": [
+        {
+          "id": "duration",
+          "reason": "Duration helps the doctor judge urgency.",
+          "question": "How long have you had these symptoms?"
+        },
+        {
+          "id": "severity",
+          "reason": "Severity helps the doctor judge urgency.",
+          "question": "How bad is the most bothersome symptom (mild / moderate / severe, or a number out of 10)?"
+        }
+      ],
+      "engine": "carepulse-analysis-v2",
+      "review_outcome": null,
+      "review_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "created_at": "2026-10-19T13:32:35.530Z"
+    },
+    {
+      "id": "SA-0SLG00",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": null,
+      "transcript": "Cough. Very nice.  You are very good.",
+      "input_mode": "voice",
+      "extracted": {
+        "negated": [],
+        "version": "carepulse-analysis-v2",
+        "duration": null,
+        "severity": null,
+        "symptoms": [
+          {
+            "name": "cough",
+            "text": "cough",
+            "negated": false
+          }
+        ]
+      },
+      "suggested_department": "Emergency Center",
+      "alternative_departments": [
+        "Gynecology",
+        "General Medicine"
+      ],
+      "urgency": "routine",
+      "urgency_note": "No emergency indicators found.",
+      "follow_up_questions": [
+        {
+          "id": "duration",
+          "reason": "Duration helps the doctor judge urgency.",
+          "question": "How long have you had these symptoms?"
+        },
+        {
+          "id": "severity",
+          "reason": "Severity helps the doctor judge urgency.",
+          "question": "How bad is the most bothersome symptom (mild / moderate / severe, or a number out of 10)?"
+        }
+      ],
+      "engine": "carepulse-analysis-v2",
+      "review_outcome": null,
+      "review_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "created_at": "2026-10-20T07:34:47.636Z"
+    },
+    {
+      "id": "SA-ONX8S7",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": "D-4jculy",
+      "transcript": "cough",
+      "input_mode": "text",
+      "extracted": {
+        "negated": [],
+        "version": "carepulse-analysis-v2",
+        "duration": null,
+        "severity": null,
+        "symptoms": [
+          {
+            "name": "cough",
+            "text": "cough",
+            "negated": false
+          }
+        ]
+      },
+      "suggested_department": "General Medicine",
+      "alternative_departments": [
+        "Pediatrics",
+        "ENT"
+      ],
+      "urgency": "routine",
+      "urgency_note": "No emergency indicators found.",
+      "follow_up_questions": [
+        {
+          "id": "duration",
+          "reason": "Duration helps the doctor judge urgency.",
+          "question": "How long have you had these symptoms?"
+        },
+        {
+          "id": "severity",
+          "reason": "Severity helps the doctor judge urgency.",
+          "question": "How bad is the most bothersome symptom (mild / moderate / severe, or a number out of 10)?"
+        }
+      ],
+      "engine": "carepulse-analysis-v2",
+      "review_outcome": null,
+      "review_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "created_at": "2026-10-20T07:38:01.849Z"
+    },
+    {
+      "id": "SA-IFI4T4",
+      "patient_id": "unlinked",
+      "doctor_id": null,
+      "transcript": "I have chest discomfort, shortness of breath, dizziness, sweating, fatigue, nausea, and pain in my left arm since this morning.",
+      "input_mode": "voice",
+      "extracted": {
+        "negated": [],
+        "version": "carepulse-analysis-v2",
+        "duration": "since this morning",
+        "severity": null,
+        "symptoms": [
+          {
+            "name": "chest discomfort",
+            "text": "i have chest discomfort",
+            "negated": false
+          },
+          {
+            "name": "shortness of breath",
+            "text": "shortness of breath",
+            "negated": false
+          },
+          {
+            "name": "dizziness",
+            "text": "dizziness",
+            "negated": false
+          },
+          {
+            "name": "sweating",
+            "text": "sweating",
+            "negated": false
+          },
+          {
+            "name": "fatigue",
+            "text": "fatigue",
+            "negated": false
+          },
+          {
+            "name": "nausea",
+            "text": "nausea",
+            "negated": false
+          },
+          {
+            "name": "left arm pain",
+            "text": "pain in my left arm since this morning",
+            "negated": false,
+            "duration": "since this morning"
+          }
+        ]
+      },
+      "suggested_department": "Emergency Center",
+      "alternative_departments": [
+        "General Medicine",
+        "Neurology"
+      ],
+      "urgency": "emergency",
+      "urgency_note": "Chest discomfort together with breathing difficulty can indicate a cardiac emergency.",
+      "follow_up_questions": [],
+      "engine": "carepulse-analysis-v2",
+      "review_outcome": null,
+      "review_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "created_at": "2026-10-20T08:34:15.339Z"
+    },
+    {
+      "id": "SA-0Y6OOZ",
+      "patient_id": "unlinked",
+      "doctor_id": "D-zcyuf2",
+      "transcript": "I have a skin rash and itching but no fever.",
+      "input_mode": "text",
+      "extracted": {
+        "negated": [
+          "fever"
+        ],
+        "version": "carepulse-analysis-v2",
+        "duration": null,
+        "severity": null,
+        "symptoms": [
+          {
+            "name": "skin rash/itching",
+            "text": "i have a skin rash",
+            "negated": false
+          }
+        ]
+      },
+      "suggested_department": "Dermatology",
+      "alternative_departments": [
+        "General Medicine",
+        "Pediatrics"
+      ],
+      "urgency": "routine",
+      "urgency_note": "No emergency indicators found.",
+      "follow_up_questions": [
+        {
+          "id": "duration",
+          "reason": "Duration helps the doctor judge urgency.",
+          "question": "How long have you had these symptoms?"
+        },
+        {
+          "id": "severity",
+          "reason": "Severity helps the doctor judge urgency.",
+          "question": "How bad is the most bothersome symptom (mild / moderate / severe, or a number out of 10)?"
+        }
+      ],
+      "engine": "carepulse-analysis-v2",
+      "review_outcome": null,
+      "review_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "created_at": "2026-10-20T08:34:16.059Z"
+    },
+    {
+      "id": "SA-3BQPWY",
+      "patient_id": "P-4jc2ms",
+      "doctor_id": "D-n5b1ha",
+      "transcript": "one side headache,pain behind eyes,vomitting sensation",
+      "input_mode": "text",
+      "extracted": {
+        "negated": [],
+        "version": "carepulse-analysis-v2",
+        "duration": null,
+        "severity": null,
+        "symptoms": [
+          {
+            "name": "headache",
+            "text": "one side headache",
+            "negated": false
+          },
+          {
+            "name": "vomiting",
+            "text": "vomitting sensation",
+            "negated": false
+          }
+        ]
+      },
+      "suggested_department": "Neurology",
+      "alternative_departments": [
+        "ENT",
+        "Ophthalmology"
+      ],
+      "urgency": "routine",
+      "urgency_note": "No emergency indicators found.",
+      "follow_up_questions": [
+        {
+          "id": "duration",
+          "reason": "Duration helps the doctor judge urgency.",
+          "question": "How long have you had these symptoms?"
+        },
+        {
+          "id": "severity",
+          "reason": "Severity helps the doctor judge urgency.",
+          "question": "How bad is the most bothersome symptom (mild / moderate / severe, or a number out of 10)?"
+        }
+      ],
+      "engine": "carepulse-analysis-v2",
+      "review_outcome": null,
+      "review_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "created_at": "2026-10-22T11:18:24.427Z"
+    }
+  ]
+}

@@ -18,6 +18,23 @@ export function Providers({ children }: { children?: React.ReactNode }) {
     useStore.getState().boot();
   }, []);
 
+  // Cross-panel sync: gentle polling keeps the pharmacy / laboratory / billing
+  // queues current without a websocket dependency. It pauses when the tab is
+  // hidden, and failures are silent — the next poll (or manual refresh) wins.
+  React.useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === "visible" && useStore.getState().bootState === "ready") {
+        useStore.getState().refresh();
+      }
+    };
+    const iv = setInterval(tick, 15_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(iv);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
+
   return (
     <>
       {children ?? null}

@@ -9,6 +9,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 /**
  * CarePulse schema — single source of truth shared by every device.
@@ -48,9 +49,14 @@ export const sessions = pgTable("sessions", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
 
-export const patients = pgTable("patients", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
+export const patients = pgTable(
+  "patients",
+  {
+    id: text("id").primaryKey(),
+    /** Permanent human-readable Patient ID (PAT-YYYY-000001). Assigned once
+     *  server-side at registration; never edited by users; never reissued. */
+    patientCode: text("patient_code").notNull().default(""),
+    name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone").notNull().default(""),
   dob: text("dob").notNull().default(""),
@@ -65,7 +71,10 @@ export const patients = pgTable("patients", {
   immunizations: jsonb("immunizations").notNull().default([]),
   insurance: jsonb("insurance").notNull().default({ provider: "", number: "" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  /** Two patients can never share one Patient ID. */
+  codeUnique: uniqueIndex("patients_code_uniq_idx").on(t.patientCode).where(sql`patient_code <> ''`),
+}));
 
 export const doctors = pgTable("doctors", {
   id: text("id").primaryKey(),
@@ -135,15 +144,39 @@ export const invoices = pgTable("invoices", {
   paidAt: text("paid_at"),
 });
 
-export const labs = pgTable("labs", {
-  id: text("id").primaryKey(),
-  patientId: text("patient_id").notNull(),
-  doctorId: text("doctor_id").notNull(),
-  test: text("test").notNull(),
-  requestedOn: text("requested_on").notNull(),
-  status: text("status").notNull().default("requested"),
-  result: text("result"),
-});
+export const labs = pgTable(
+  "labs",
+  {
+    id: text("id").primaryKey(),
+    patientId: text("patient_id").notNull(),
+    doctorId: text("doctor_id").notNull(),
+    test: text("test").notNull(),
+    requestedOn: text("requested_on").notNull(),
+    status: text("status").notNull().default("requested"),
+    result: text("result"),
+    /* Lab-order workflow extension (additive; `status` stays in sync for the legacy UI) */
+    /** ordered → awaiting_sample → sample_collected → processing → result_ready → verified → cancelled */
+    workflow: text("workflow").notNull().default("ordered"),
+    /** routine | urgent | stat */
+    priority: text("priority").notNull().default("routine"),
+    visitId: text("visit_id"),
+    clinicalNote: text("clinical_note").notNull().default(""),
+    sampleCollectedAt: text("sample_collected_at"),
+    processedAt: text("processed_at"),
+    processedBy: text("processed_by"),
+    verifiedBy: text("verified_by"),
+    verifiedByName: text("verified_by_name").notNull().default(""),
+    verifiedAt: text("verified_at"),
+    cancelledReason: text("cancelled_reason").notNull().default(""),
+    /** client-supplied idempotency key — an identical resubmission returns the same order */
+    idemKey: text("idem_key"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    labsPatientIdx: index("labs_patient_idx").on(t.patientId, t.requestedOn),
+    labsIdemIdx: uniqueIndex("labs_idem_idx").on(t.idemKey),
+  })
+);
 
 export const wards = pgTable("wards", {
   id: text("id").primaryKey(),
@@ -161,6 +194,156 @@ export type VisitRow = typeof visits.$inferSelect;
 export type InvoiceRow = typeof invoices.$inferSelect;
 export type LabRow = typeof labs.$inferSelect;
 export type WardRow = typeof wards.$inferSelect;
+
+/* ─────────────── Pharmacy: medication orders (one row per ordered medication) ─────────────── */
+
+export type MedicationOrderStatus =
+  | "pending_review"
+  | "verified"
+  | "dispensing"
+  | "dispensed"
+  | "clarification_required"
+  | "on_hold"
+  | "cancelled";
+
+export const medicationOrders = pgTable(
+  "medication_orders",
+  {
+    id: text("id").primaryKey(), // MO-XXXXXX
+    patientId: text("patient_id").notNull(),
+    doctorId: text("doctor_id").notNull(),
+    visitId: text("visit_id"),
+    prescriptionId: text("prescription_id"),
+    drug: text("drug").notNull(),
+    dosage: text("dosage").notNull().default(""),
+    /** oral | iv | im | sc | topical | inhaled | sublingual | rectal | ocular | other */
+    route: text("route").notNull().default("oral"),
+    frequency: text("frequency").notNull().default(""),
+    durationDays: integer("duration_days").notNull().default(0),
+    quantity: integer("quantity").notNull().default(0),
+    instructions: text("instructions").notNull().default(""),
+    status: text("status").notNull().default("pending_review"),
+    verifiedBy: text("verified_by"),
+    verifiedByName: text("verified_by_name").notNull().default(""),
+    verifiedAt: text("verified_at"),
+    dispensedBy: text("dispensed_by"),
+    dispensedByName: text("dispensed_by_name").notNull().default(""),
+    dispensedAt: text("dispensed_at"),
+    noteFromPharmacy: text("note_from_pharmacy").notNull().default(""),
+    /** client-supplied idempotency key — duplicate submits reuse the same row */
+    idemKey: text("idem_key"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    patientIdx: index("medication_orders_patient_idx").on(t.patientId, t.createdAt),
+    statusIdx: index("medication_orders_status_idx").on(t.status),
+    idemIdx: uniqueIndex("medication_orders_idem_idx").on(t.idemKey),
+  })
+);
+
+export type MedicationOrderRow = typeof medicationOrders.$inferSelect;
+
+/* ─────────────── Admissions (inpatient stays, linked to beds) ─────────────── */
+
+export const admissions = pgTable(
+  "admissions",
+  {
+    id: text("id").primaryKey(), // AD-XXXXXX
+    patientId: text("patient_id").notNull(),
+    doctorId: text("doctor_id"),
+    wardId: text("ward_id").notNull().default(""),
+    wardName: text("ward_name").notNull().default(""),
+    bedId: text("bed_id"),
+    bedLabel: text("bed_label").notNull().default(""),
+    reason: text("reason").notNull().default(""),
+    notes: text("notes").notNull().default(""),
+    status: text("status").notNull().default("active"), // active | discharged
+    admittedAt: text("admitted_at").notNull(), // ISO timestamp
+    dischargedAt: text("discharged_at"), // ISO timestamp
+    accountId: text("account_id"),
+  },
+  (t) => ({
+    patientIdx: index("admissions_patient_idx").on(t.patientId, t.admittedAt),
+    statusIdx: index("admissions_status_idx").on(t.status),
+  })
+);
+
+export type AdmissionRow = typeof admissions.$inferSelect;
+
+/* ─────────────── Normalized billing: billable items per order ─────────────── */
+
+/**
+ * One billable item per source order (medication / lab / consultation).
+ * Uniqueness on (sourceType, sourceOrderId) makes duplicate submissions safe:
+ * the second request resolves to the existing item instead of double-charging.
+ * (sourceOrderId is null for manually-entered invoice lines, which are exempt.)
+ */
+export const invoiceItems = pgTable(
+  "invoice_items",
+  {
+    id: text("id").primaryKey(), // II-XXXXXX
+    invoiceId: text("invoice_id").notNull(),
+    patientId: text("patient_id").notNull(),
+    sourceType: text("source_type").notNull(), // medication | lab | consultation | manual
+    sourceOrderId: text("source_order_id"),
+    label: text("label").notNull(),
+    /** internal billing code, e.g. MED-PARACETAMOL-500 — informational */
+    code: text("code").notNull().default(""),
+    quantity: integer("quantity").notNull().default(1),
+    unitPrice: real("unit_price").notNull().default(0),
+    amount: real("amount").notNull().default(0),
+    /** billed | awaiting_price | cancelled */
+    status: text("status").notNull().default("billed"),
+    currency: text("currency").notNull().default("INR"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    invoiceIdx: index("invoice_items_invoice_idx").on(t.invoiceId),
+    sourceIdx: uniqueIndex("invoice_items_source_idx").on(t.sourceType, t.sourceOrderId),
+  })
+);
+
+export type InvoiceItemRow = typeof invoiceItems.$inferSelect;
+
+/* ─────────────── Pharmacy inventory (real stock, never invented) ─────────────── */
+
+export const inventory = pgTable(
+  "inventory",
+  {
+    id: text("id").primaryKey(), // INV-XXXX
+    /** medication product name — orders resolve price & stock against it */
+    name: text("name").notNull(),
+    unit: text("unit").notNull().default("strip"),
+    unitPrice: real("unit_price").notNull().default(0),
+    stock: integer("stock").notNull().default(0),
+    reorderLevel: integer("reorder_level").notNull().default(10),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    nameIdx: uniqueIndex("inventory_name_idx").on(t.name),
+  })
+);
+
+export type InventoryRow = typeof inventory.$inferSelect;
+
+/* ─────────────── Service prices (configurable; billing never invents prices) ─────────────── */
+
+export const servicePrices = pgTable(
+  "service_prices",
+  {
+    id: text("id").primaryKey(), // SP-XXXX
+    kind: text("kind").notNull(), // medication | lab
+    name: text("name").notNull(),
+    unitPrice: real("unit_price").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    kindNameIdx: uniqueIndex("service_prices_kind_name_idx").on(t.kind, t.name),
+  })
+);
+
+export type ServicePriceRow = typeof servicePrices.$inferSelect;
 
 /** Doctor leave days — booking is rejected for any date within a leave. */
 export const leaves = pgTable(

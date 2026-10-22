@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { nanoid } from "nanoid";
 import type {
   Account,
+  Admission,
   Appointment,
   BedAuditEntry,
   BedState,
@@ -13,13 +14,19 @@ import type {
   EmergencyPriority,
   EmergencyStatus,
   EmergencyVitals,
+  InventoryItem,
   Invoice,
+  InvoiceItem,
   LabRequest,
   Leave,
+  MedicationOrder,
+  MedicationOrderStatus,
   Patient,
   Prescription,
   Role,
+  ServicePrice,
   SignUpInput,
+  SymptomAssessmentRow,
   Toast,
   TriageResult,
   Visit,
@@ -132,6 +139,12 @@ interface State {
   emergencies: EmergencyCase[];
   beds: BedState[];
   bedAudit: BedAuditEntry[];
+  medicationOrders: MedicationOrder[];
+  admissions: Admission[];
+  invoiceItems: InvoiceItem[];
+  inventory: InventoryItem[];
+  servicePrices: ServicePrice[];
+  symptomAssessments: SymptomAssessmentRow[];
   session: SessionUser | null;
   theme: "light" | "dark";
   toasts: Toast[];
@@ -162,16 +175,29 @@ interface State {
   // final conflict authority when the booking request lands.
   slotsFor: (doctorId: string, date: string) => Slot[];
 
-  // visits & prescriptions
+  // visits, prescriptions & orders (new order pipeline with routing + billing)
   addVisit: (input: NewVisitInput) => Promise<void>;
-  addPrescription: (input: NewRxInput) => Promise<void>;
+  createPrescription: (input: {
+    patientId: string;
+    visitId?: string;
+    items: { drug: string; dosage: string; route?: string; frequency: string; durationDays: number; quantity?: number; instructions?: string }[];
+  }) => Promise<{ ok: boolean; orderIds?: string[]; awaitingPrice?: boolean; error?: string }>;
+  createLabOrder: (input: { patientId: string; visitId?: string; test: string; priority?: "routine" | "urgent" | "stat"; clinicalNote?: string }) =>
+    Promise<{ ok: boolean; orderId?: string; awaitingPrice?: boolean; error?: string }>;
+  pharmacyAction: (id: string, action: "verify" | "dispense" | "hold" | "clarify" | "cancel", note?: string) =>
+    Promise<{ ok: boolean; error?: string }>;
+  labAction: (id: string, action: "collect" | "process" | "result" | "verify" | "cancel", result?: string) =>
+    Promise<{ ok: boolean; error?: string }>;
+  setInventory: (input: { name: string; unit?: string; unitPrice: number; stock: number; reorderLevel?: number; id?: string }) =>
+    Promise<{ ok: boolean; error?: string }>;
+  setBillPrice: (input: { itemId?: string; kind?: "medication" | "lab"; name?: string; unitPrice: number }) =>
+    Promise<{ ok: boolean; error?: string }>;
 
-  // billing
+  // billing (legacy direct invoice creation stays)
   createInvoice: (input: NewInvoiceInput) => Promise<void>;
   payInvoice: (id: string) => Promise<boolean>;
 
-  // labs
-  createLab: (input: NewLabInput) => Promise<void>;
+  // labs (legacy status setter — kept for the admin page)
   setLabStatus: (id: string, status: LabRequest["status"], result?: string) => Promise<boolean>;
 
   // wards
@@ -239,6 +265,8 @@ const API = {
   emergency: (id: string) => `/api/emergencies/${id}`,
   bedStates: "/api/beds/states",
   bedRecommend: "/api/beds/recommend",
+  pharmacy: (id: string) => `/api/pharmacy/${id}`,
+  billing: "/api/billing",
 } as const;
 
 async function apiPost(url: string, body?: unknown): Promise<{ ok: boolean; status: number; data: any }> {
@@ -338,6 +366,12 @@ function applySnapshot(s: State, data: Record<string, unknown>): Partial<State> 
     emergencies: (data.emergencies ?? []) as State["emergencies"],
     beds: (data.beds ?? []) as State["beds"],
     bedAudit: (data.bedAudit ?? []) as State["bedAudit"],
+    medicationOrders: (data.medicationOrders ?? []) as State["medicationOrders"],
+    admissions: (data.admissions ?? []) as State["admissions"],
+    invoiceItems: (data.invoiceItems ?? []) as State["invoiceItems"],
+    inventory: (data.inventory ?? []) as State["inventory"],
+    servicePrices: (data.servicePrices ?? []) as State["servicePrices"],
+    symptomAssessments: (data.symptomAssessments ?? []) as State["symptomAssessments"],
     session: data.session as SessionUser | null,
   };
 }
@@ -361,11 +395,15 @@ export const useStore = create<State>()((set, get) => ({
   bootState: "idle",
   bootError: null,
   legacySnapshot: null,
-  legacyImportedOn: null,
-
-  accounts: [],
+  legacyImportedOn: null,    accounts: [],
   doctors: [],
   patients: [],
+  medicationOrders: [],
+  admissions: [],
+  invoiceItems: [],
+  inventory: [],
+  servicePrices: [],
+  symptomAssessments: [],
   appointments: [],
   prescriptions: [],
   visits: [],
@@ -474,9 +512,7 @@ export const useStore = create<State>()((set, get) => ({
     const name = (data.session as SessionUser | null)?.name ?? "there";
     get().toast({ title: `Welcome back, ${name.split(" ")[0]} 👋`, variant: "success" });
     return { ok: true };
-  },
-
-  logout: async () => {
+  },  logout: async () => {
     // Clear everything FIRST so the login page never sees a stale session
     // (that race is what froze phones on the splash). The server call then
     // happens in the background — the cookie is invalidated whenever it lands.
@@ -497,6 +533,12 @@ export const useStore = create<State>()((set, get) => ({
       emergencies: [],
       beds: [],
       bedAudit: [],
+      medicationOrders: [],
+      admissions: [],
+      invoiceItems: [],
+      inventory: [],
+      servicePrices: [],
+      symptomAssessments: [],
     });
     void apiPost(API.signOut);
   },
@@ -666,14 +708,94 @@ export const useStore = create<State>()((set, get) => ({
     get().toast({ title: "Visit recorded", description: input.diagnosis, variant: "success" });
   },
 
-  addPrescription: async (input) => {
-    const res = await apiPost(API.prescriptions, input);
+  // ───────── order pipeline: prescriptions & lab orders with auto-billing ─────────
+  createPrescription: async (input) => {
+    const idemKey = nanoid(32);
+    const res = await apiPost(API.prescriptions, { ...input, idemKey });
     if (!res.ok) {
-      get().toast({ title: "Could not issue prescription", description: res.data?.error, variant: "destructive" });
-      return;
+      const msg = res.data?.error ?? "Please check the entries and try again.";
+      return { ok: false, error: msg };
     }
     await get().refresh();
-    get().toast({ title: "Prescription issued", description: `${input.items.length} medication(s).`, variant: "success" });
+    if (res.data?.duplicate) {
+      get().toast({ title: "Already saved", description: "This prescription was already issued — no duplicate was created.", variant: "success" });
+    } else {
+      get().toast({
+        title: "Prescription issued",
+        description: res.data?.awaitingPrice
+          ? "Routed to pharmacy. Billing is awaiting a configured price."
+          : "Routed to pharmacy and added to the patient’s invoice.",
+        variant: "success",
+      });
+    }
+    return { ok: true, orderIds: res.data?.orderIds, awaitingPrice: res.data?.awaitingPrice };
+  },
+
+  createLabOrder: async (input) => {
+    const idemKey = nanoid(32);
+    const res = await apiPost(API.labs, { ...input, idemKey });
+    if (!res.ok) {
+      return { ok: false, error: res.data?.error ?? "Could not order the test." };
+    }
+    await get().refresh();
+    if (res.data?.duplicate) {
+      get().toast({ title: "Already ordered", description: "This lab order already exists — nothing was duplicated.", variant: "success" });
+    } else {
+      get().toast({
+        title: "Lab test ordered",
+        description: res.data?.awaitingPrice
+          ? "Routed to the laboratory. Billing is awaiting a configured price."
+          : "Routed to the laboratory and added to the patient’s invoice.",
+        variant: "success",
+      });
+    }
+    return { ok: true, orderId: res.data?.id, awaitingPrice: res.data?.awaitingPrice };
+  },
+
+  pharmacyAction: async (id, action, note) => {
+    const res = await apiPatch(API.pharmacy(id), { action, note });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Action failed." };
+    await get().refresh();
+    const labels: Record<string, string> = {
+      verify: "Prescription verified",
+      dispense: "Medication dispensed",
+      hold: "Order put on hold",
+      clarify: "Clarification requested",
+      cancel: "Order cancelled",
+    };
+    get().toast({ title: labels[action] ?? "Updated", variant: action === "cancel" ? "default" : "success" });
+    return { ok: true };
+  },
+
+  labAction: async (id, action, result) => {
+    const res = await apiPatch(API.lab(id), { action, result });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Action failed." };
+    await get().refresh();
+    const labels: Record<string, string> = {
+      collect: "Sample collected",
+      process: "Sample in processing",
+      result: "Results recorded",
+      verify: "Result verified",
+      cancel: "Order cancelled",
+    };
+    get().toast({ title: labels[action] ?? "Updated", variant: action === "cancel" ? "default" : "success" });
+    return { ok: true };
+  },
+
+  setInventory: async (input) => {
+    const res = await apiPost(API.billing, { action: "set-inventory", ...input });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not save inventory." };
+    await get().refresh();
+    get().toast({ title: "Inventory updated", variant: "success" });
+    return { ok: true };
+  },
+
+  setBillPrice: async (input) => {
+    const res = await apiPost(API.billing, input.itemId ? { action: "set-price", ...input } : { action: "set-service-price", ...input });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not save the price." };
+    await get().refresh();
+    get().toast({ title: "Price saved", variant: "success" });
+    return { ok: true };
   },
 
   // ───────────────── billing ─────────────────
@@ -699,16 +821,6 @@ export const useStore = create<State>()((set, get) => ({
   },
 
   // ───────────────── labs ─────────────────
-  createLab: async (input) => {
-    const res = await apiPost(API.labs, input);
-    if (!res.ok) {
-      get().toast({ title: "Could not request test", description: res.data?.error, variant: "destructive" });
-      return;
-    }
-    await get().refresh();
-    get().toast({ title: "Lab test requested", description: input.test, variant: "success" });
-  },
-
   setLabStatus: async (id, status, result) => {
     const res = await apiPatch(API.lab(id), { status, result });
     if (!res.ok) {

@@ -7,6 +7,8 @@ import {
   prescriptions as prescriptionsT,
   labs as labsT,
   doctors as doctorsT,
+  admissions as admissionsT,
+  medicationOrders as medicationOrdersT,
 } from "@/db/schema";
 import type { PatientRow, VisitRow } from "@/db/schema";
 import { json, apiError, requireAccount } from "@/lib/server/api";
@@ -120,12 +122,14 @@ export async function GET(
 
   // supporting rows (independent of the period filter to keep encounter
   // context complete — the timeline itself is period-filtered)
-  const [appointments, prescriptions, labs, allDoctors] = (await Promise.all([
+  const [appointments, prescriptions, labs, allDoctors, admissions, medOrders] = (await Promise.all([
     db.select().from(appointmentsT).where(eq(appointmentsT.patientId, params.id)).orderBy(desc(appointmentsT.date)),
     db.select().from(prescriptionsT).where(eq(prescriptionsT.patientId, params.id)).orderBy(desc(prescriptionsT.date)),
     db.select().from(labsT).where(eq(labsT.patientId, params.id)).orderBy(desc(labsT.requestedOn)),
     db.select().from(doctorsT),
-  ])) as [AppointmentRow[], PrescriptionRow[], LabRow[], DoctorRow[]];
+    db.select().from(admissionsT).where(eq(admissionsT.patientId, params.id)).orderBy(desc(admissionsT.admittedAt)),
+    db.select().from(medicationOrdersT).where(eq(medicationOrdersT.patientId, params.id)).orderBy(desc(medicationOrdersT.createdAt)),
+  ])) as [AppointmentRow[], PrescriptionRow[], LabRow[], DoctorRow[], (typeof admissionsT.$inferSelect)[], (typeof medicationOrdersT.$inferSelect)[]];
 
   const upcomings = appointments
     .filter((a) => a.date >= today && a.status !== "cancelled" && a.status !== "completed")
@@ -145,6 +149,32 @@ export async function GET(
   return json({
     patient,
     counts,
+    admissions: admissions.map((a) => ({
+      id: a.id,
+      wardName: a.wardName,
+      bedLabel: a.bedLabel,
+      reason: a.reason,
+      status: a.status,
+      admittedAt: a.admittedAt,
+      dischargedAt: a.dischargedAt,
+      doctorName: docName(a.doctorId ?? ""),
+    })),
+    medicationOrders: medOrders.map((o) => ({
+      id: o.id,
+      patientId: o.patientId,
+      drug: o.drug,
+      dosage: o.dosage,
+      route: o.route,
+      frequency: o.frequency,
+      durationDays: o.durationDays,
+      quantity: o.quantity,
+      status: o.status,
+      prescriptionId: o.prescriptionId,
+      doctorName: docName(o.doctorId),
+      createdAt: o.createdAt,
+      dispensedAt: o.dispensedAt,
+      dispensedByName: o.dispensedByName,
+    })),
     visits: periodVisits.map((v) => ({
       ...v,
       doctorName: docName(v.doctorId),
