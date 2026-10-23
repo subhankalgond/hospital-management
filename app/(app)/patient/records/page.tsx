@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Pill, Syringe, TriangleAlert, Waves, FileText } from "lucide-react";
+import Link from "next/link";
+import { Pill, Syringe, TriangleAlert, Waves, FileText, QrCode } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle, Badge, EmptyState } from "@/components/ui/primitives";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,7 +26,18 @@ export default function PatientRecords() {
 
   return (
     <>
-      <PageHeader title="Health records" description="Your medical history, prescriptions and personal health flags." />
+      <PageHeader
+        title="Health records"
+        description="Your medical history, prescriptions and personal health flags."
+        actions={
+          <Link
+            href="/patient/abha"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+          >
+            <QrCode className="size-4" /> ABHA & Health Data Exchange
+          </Link>
+        }
+      />
 
       {/* Alert flags */}
       <div className="grid gap-4 md:grid-cols-3">

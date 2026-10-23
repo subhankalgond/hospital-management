@@ -268,6 +268,58 @@ export interface ServicePrice {
   unitPrice: number;
 }
 
+/* ─────────────── OPD queue (live tokens) ─────────────── */
+
+export type QueueEntryStatus = "waiting" | "called" | "done" | "missed" | "cancelled";
+
+export interface QueueEntry {
+  id: string;
+  queueDate: string;
+  doctorId: string;
+  department: string;
+  patientId: string;
+  appointmentId?: string | null;
+  source: "appointment" | "walk_in" | "emergency";
+  priority: "normal" | "emergency";
+  status: QueueEntryStatus;
+  tokenNo: number;
+  note: string;
+  reviewNote?: string | null;
+  calledBy?: string | null;
+  calledByName: string;
+  calledAt?: string | null;
+  registeredBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QueuePosition {
+  entry: QueueEntry;
+  ahead: number;
+  currentCalled: { tokenNo: number; calledAt: string | null } | null;
+  doctorName: string;
+  department: string;
+}
+
+/** Server-payload shape of GET /api/queue?doctorId=… */
+export interface DoctorQueueView {
+  entries: QueueEntry[];
+  waiting: number;
+  currentCalled: QueueEntry | null;
+}
+
+export interface PublicDisplayBoard {
+  updatedAt: string;
+  boards: {
+    doctorId: string;
+    doctorName: string;
+    department: string;
+    currentCalled: number | null;
+    lastCalled: number[];
+  }[];
+}
+
+/** Additive tag for queue-linked booking inputs. */
 export interface SymptomAssessmentRow {
   id: string;
   patientId: string;

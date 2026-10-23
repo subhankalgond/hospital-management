@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import { useStore } from "@/lib/store";
-import { Badge, Button, Card, EmptyState, Input, Label } from "@/components/ui/primitives";
+import { Badge, Card, EmptyState, Input } from "@/components/ui/primitives";
 import { PageHeader } from "@/components/ui/misc";
-import { dateLabel } from "@/lib/utils";
+import { ageFrom, dateLabel } from "@/lib/utils";
 import { Users, Search, User } from "lucide-react";
-
 export default function AdminPatients() {
   const patients = useStore((s) => s.patients);
   const doctors = useStore((s) => s.doctors);
@@ -14,9 +13,8 @@ export default function AdminPatients() {
   const [search, setSearch] = React.useState("");
   const filtered = patients.filter(
     (p) =>
-      (p.patientCode?.includes(search) || "")
-        ?.includes(search) ||
-      (p.name?.toLowerCase().includes(search.toLowerCase()) ?? false)
+      (p.patientCode ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.name ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -36,7 +34,6 @@ export default function AdminPatients() {
           placeholder="Search by Patient ID or name"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          leftIcon={<Search className="size-4" />}
           className="w-full max-w-md"
         />
       </div>
@@ -64,7 +61,7 @@ export default function AdminPatients() {
               </p>
               <p className="font-medium mt-1">{p.name}</p>
               <p className="text-sm text-muted-foreground">
-                {dateLabel(p.createdAt)} · Role: {p.role}
+                {p.name} · {p.gender === "female" ? "F" : p.gender === "male" ? "M" : "O"} · {ageFrom(p.dob)} yrs · {p.phone}
               </p>
             </div>
           </div>

@@ -46,6 +46,10 @@ export async function POST(req: Request) {
     visitId?: string;
     idemKey?: string;
     items?: RxItem[];
+    /** result of POST /api/clinical/checks for these items (audit trail) */
+    safetyChecks?: unknown;
+    /** clinician override justification when proceeding with flagged issues */
+    overrideReason?: string;
   }>(req);
   if (!body?.patientId) return apiError("Missing patient.", 422);
   if (!Array.isArray(body.items) || body.items.length === 0) {
@@ -115,6 +119,10 @@ export async function POST(req: Request) {
         date: new Date().toISOString().slice(0, 10),
         items: items.map(({ route, quantity, ...rest }) => ({ ...rest, route, quantity })),
         active: true,
+        checks: (body.safetyChecks ?? null) as any,
+        checksAt: new Date().toISOString(),
+        checksEngine: "clinical-checks-1.1.0",
+        overrideReason: (body.overrideReason ?? "").toString().slice(0, 500) || null,
       });
 
       for (const it of items) {

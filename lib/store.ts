@@ -10,6 +10,7 @@ import type {
   BedState,
   BedStatus,
   Doctor,
+  DoctorQueueView,
   EmergencyCase,
   EmergencyPriority,
   EmergencyStatus,
@@ -23,6 +24,10 @@ import type {
   MedicationOrderStatus,
   Patient,
   Prescription,
+  PublicDisplayBoard,
+  QueueEntry,
+  QueueEntryStatus,
+  QueuePosition,
   Role,
   ServicePrice,
   SignUpInput,
@@ -48,6 +53,8 @@ interface NewAppointmentInput {
   date: string;
   time: string;
   reason: string;
+  /** verified Razorpay payment id — required under a "required" payment policy */
+  paidPaymentId?: string;
 }
 
 interface NewVisitInput {
@@ -181,6 +188,8 @@ interface State {
     patientId: string;
     visitId?: string;
     items: { drug: string; dosage: string; route?: string; frequency: string; durationDays: number; quantity?: number; instructions?: string }[];
+    safetyChecks?: unknown;
+    overrideReason?: string;
   }) => Promise<{ ok: boolean; orderIds?: string[]; awaitingPrice?: boolean; error?: string }>;
   createLabOrder: (input: { patientId: string; visitId?: string; test: string; priority?: "routine" | "urgent" | "stat"; clinicalNote?: string }) =>
     Promise<{ ok: boolean; orderId?: string; awaitingPrice?: boolean; error?: string }>;
@@ -238,6 +247,27 @@ interface State {
   // legacy import
   importLegacySnapshot: () => Promise<{ ok: boolean; error?: string }>;
   dismissLegacySnapshot: () => void;
+
+  // ───────────────── OPD queue (live tokens) ─────────────────
+  /** patient's own live position (poll in patient views) */
+  queuePosition: QueuePosition | null;
+  refreshQueuePosition: () => Promise<void>;
+  /** patient: join the today's queue against one of their confirmed appointments */
+  joinQueue: (appointmentId: string) => Promise<{ ok: boolean; duplicate?: boolean; error?: string }>;
+  /** staff: issue a token (walk-in / emergency issuer) */
+  issueQueueToken: (input: { doctorId: string; patientId: string; source: "appointment" | "walk_in" | "emergency"; priority: "normal" | "emergency"; appointmentId?: string; note?: string }) =>
+    Promise<{ ok: boolean; entry?: QueueEntry; duplicate?: boolean; error?: string }>;
+  /** staff: full queue for one doctor for today */
+  doctorQueue: DoctorQueueView | null;
+  refreshDoctorQueue: (doctorId: string) => Promise<void>;
+  /** staff: mark waiting/called entries as missed/done/cancelled/requeue, set notes & priority */
+  queueEntryAction: (id: string, action: "missed" | "done" | "cancel" | "requeue" | "review_note" | "priority", opts?: { note?: string; priority?: "normal" | "emergency" }) =>
+    Promise<{ ok: boolean; error?: string }>;
+  /** staff: race-safe call-next; returns the called token for announcements */
+  callNextPatient: (doctorId?: string) => Promise<{ ok: boolean; token?: number; error?: string }>;
+  /** public display board data (tokens only, no patient identity) */
+  publicDisplay: PublicDisplayBoard | null;
+  refreshPublicDisplay: () => Promise<void>;
 }
 
 /* ───────────────────────── helpers ───────────────────────── */
@@ -267,6 +297,8 @@ const API = {
   bedRecommend: "/api/beds/recommend",
   pharmacy: (id: string) => `/api/pharmacy/${id}`,
   billing: "/api/billing",
+  queue: "/api/queue",
+  queuePut: "/api/queue",
 } as const;
 
 async function apiPost(url: string, body?: unknown): Promise<{ ok: boolean; status: number; data: any }> {
@@ -415,6 +447,9 @@ export const useStore = create<State>()((set, get) => ({
   beds: [],
   bedAudit: [],
   session: null,
+  queuePosition: null,
+  doctorQueue: null,
+  publicDisplay: null,
   theme: typeof window !== "undefined" && window.localStorage.getItem("carepulse-theme") === "dark" ? "dark" : "light",
   toasts: [],
 
@@ -1000,6 +1035,92 @@ export const useStore = create<State>()((set, get) => ({
       window.localStorage.removeItem(LEGACY_KEY);
     }
     set({ legacySnapshot: null, legacyImportedOn: todayISO() });
+  },
+
+  // ───────────────── OPD queue (live tokens) ─────────────────
+  refreshQueuePosition: async () => {
+    const res = await fetch(`${API.queue}?mine=1`, { cache: "no-store" }).catch(() => null);
+    if (!res) return;
+    if (!res.ok) {
+      set({ queuePosition: null });
+      return;
+    }
+    const data = await res.json().catch(() => null);
+    set({ queuePosition: (data?.position ?? null) as QueuePosition | null });
+  },
+
+  joinQueue: async (appointmentId) => {
+    const res = await apiPost(API.queue, { appointmentId, idemKey: `aq-${appointmentId}` });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Could not issue a token." };
+    await get().refreshQueuePosition();
+    get().toast({
+      title: res.data?.duplicate ? "Already in the queue" : "Token issued",
+      description: res.data?.duplicate ? "You already hold a token for this doctor today." : `Your token is #${res.data?.entry?.tokenNo}.`,
+      variant: "success",
+    });
+    return { ok: true, duplicate: !!res.data?.duplicate };
+  },
+
+  issueQueueToken: async (input) => {
+    const idemKey = input.appointmentId ? `wq-${input.appointmentId}` : `qi-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const res = await apiPost(API.queue, { ...input, idemKey });
+    if (!res.ok) return { ok: false, duplicate: false, error: res.data?.error ?? "Could not issue a token." };
+    const entry = res.data?.entry as QueueEntry | undefined;
+    await get().refresh();
+    get().toast({
+      title: res.data?.duplicate ? "Already in queue — existing token reused" : `Token #${entry?.tokenNo} issued`,
+      description: entry ? `${entry.department} · ${entry.priority === "emergency" ? "EMERGENCY priority" : entry.source.replace("_", " ")}` : undefined,
+      variant: "success",
+    });
+    return { ok: true, entry, duplicate: !!res.data?.duplicate };
+  },
+
+  refreshDoctorQueue: async (doctorId) => {
+    const res = await fetch(`${API.queue}?doctorId=${encodeURIComponent(doctorId)}`, { cache: "no-store" }).catch(() => null);
+    if (!res) return;
+    if (!res.ok) {
+      set({ doctorQueue: null });
+      return;
+    }
+    const data = (await res.json().catch(() => null)) as DoctorQueueView | null;
+    set({ doctorQueue: data ?? null });
+  },
+
+  queueEntryAction: async (id, action, opts) => {
+    const res = await apiPatch(API.queue, { id, action, ...opts });
+    if (!res.ok) return { ok: false, error: res.data?.error ?? "Action failed." };
+    return { ok: true };
+  },
+
+  callNextPatient: async (doctorId) => {
+    const url = API.queuePut;
+    const body = doctorId ? { doctorId } : {};
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => null);
+    if (!res) return { ok: false, error: "Cannot reach the server." };
+    const data = await res.json().catch(() => ({ error: "Call failed." }));
+    if (!res.ok) return { ok: false, error: data?.error ?? "Call failed." };
+    const token = Number(data?.token ?? 0);
+    get().toast({
+      title: `Token #${token} called`,
+      description: data?.doctorName ? `${data.doctorName} · ${data.department}` : undefined,
+      variant: "success",
+    });
+    return { ok: true, token };
+  },
+
+  refreshPublicDisplay: async () => {
+    const res = await fetch(`${API.queue}?display=1`, { cache: "no-store" }).catch(() => null);
+    if (!res) return;
+    if (!res.ok) {
+      set({ publicDisplay: null });
+      return;
+    }
+    const data = (await res.json().catch(() => null)) as PublicDisplayBoard | null;
+    set({ publicDisplay: data ?? null });
   },
 }));
 

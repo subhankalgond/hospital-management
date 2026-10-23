@@ -120,6 +120,12 @@ export const prescriptions = pgTable("prescriptions", {
   date: text("date").notNull(),
   items: jsonb("items").notNull().default([]),
   active: boolean("active").notNull().default(true),
+  /** e-prescription safety-check payload (lib/server/clinical-checks.ts) */
+  checks: jsonb("checks"),
+  checksAt: text("checks_at"),
+  checksEngine: text("checks_engine").notNull().default(""),
+  /** clinician override justification recorded when issuing with warnings */
+  overrideReason: text("override_reason"),
 });
 
 export const visits = pgTable("visits", {
@@ -510,3 +516,234 @@ export const auditLogs = pgTable(
 );
 
 export type AuditLogRow = typeof auditLogs.$inferSelect;
+
+/* ─────────────── OPD Queue & tokens ─────────────── */
+
+/**
+ * One queue entry per patient per doctor-session. Token numbers are allocated
+ * per doctor per clinic-day by the server; live status drives the patient
+ * portal, the doctor waiting queue and the public waiting-room display
+ * (which must never show patient names or any clinical data).
+ */
+export const queueEntries = pgTable(
+  "queue_entries",
+  {
+    id: text("id").primaryKey(), // QE-XXXXXX
+    queueDate: text("queue_date").notNull(), // yyyy-mm-dd — the clinic session day
+    doctorId: text("doctor_id").notNull(),
+    department: text("department").notNull().default(""),
+    patientId: text("patient_id").notNull(),
+    appointmentId: text("appointment_id"),
+    /** appointment | walk_in | emergency */
+    source: text("source").notNull().default("appointment"),
+    /** normal | emergency — emergency always jumps the queue, server-enforced */
+    priority: text("priority").notNull().default("normal"),
+    /** waiting | called | done | missed | cancelled */
+    status: text("status").notNull().default("waiting"),
+    tokenNo: integer("token_no").notNull(),
+    note: text("note").notNull().default(""), // visit reason / triage note from the issuer
+    /** doctor's review note from the live triage file (feature 6) */
+    reviewNote: text("review_note"),
+    calledBy: text("called_by"),
+    calledByName: text("called_by_name").notNull().default(""),
+    calledAt: text("called_at"),
+    /** duplicate prevention: one submission = one entry even across network retries */
+    idemKey: text("idem_key"),
+    registeredBy: text("registered_by"), // account id of the issuing staff member
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    doctorDayIdx: uniqueIndex("queue_entries_token_idx").on(t.queueDate, t.doctorId, t.tokenNo),
+    /** one still-active entry per patient per doctor per day — no duplicate tokens */
+    activeUniq: uniqueIndex("queue_entries_active_uniq")
+      .on(t.queueDate, t.doctorId, t.patientId)
+      .where(sql`status in ('waiting','called')`),
+    patientIdx: index("queue_entries_patient_idx").on(t.patientId, t.queueDate),
+    statusIdx: index("queue_entries_status_idx").on(t.queueDate, t.doctorId, t.status),
+    idemIdx: uniqueIndex("queue_entries_idem_idx").on(t.idemKey),
+  })
+);
+
+export type QueueEntryRow = typeof queueEntries.$inferSelect;
+
+/* ─────────────── Payments (gateway: Razorpay-compatible) ─────────────── */
+
+/**
+ * Server-side payment records. Real gateway orders live here; the frontend
+ * is never trusted — status changes only through signature-verified
+ * callbacks (checkout verify or webhooks).
+ */
+export const payments = pgTable(
+  "payments",
+  {
+    id: text("id").primaryKey(), // PAY-XXXXXX
+    provider: text("provider").notNull().default("razorpay"),
+    /** gateway order id (razorpay order_xxx) */
+    providerOrderId: text("provider_order_id"),
+    providerPaymentId: text("provider_payment_id"),
+    patientId: text("patient_id").notNull(),
+    appointmentId: text("appointment_id"),
+    amount: real("amount").notNull().default(0),
+    currency: text("currency").notNull().default("INR"),
+    /** created | paid | failed | refunded | cancelled */
+    status: text("status").notNull().default("created"),
+    /** append-only gateway event log (idempotent webhook processing) */
+    events: jsonb("events").notNull().default([]),
+    idemKey: text("idem_key"),
+    failureReason: text("failure_reason").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    providerOrderIdx: uniqueIndex("payments_provider_order_idx").on(t.providerOrderId),
+    patientIdx: index("payments_patient_idx").on(t.patientId, t.createdAt),
+    idemIdx: uniqueIndex("payments_idem_idx").on(t.idemKey),
+  })
+);
+
+export type PaymentRow = typeof payments.$inferSelect;
+
+/* ─────────────── Recovery & wellness tracker ─────────────── */
+
+/**
+ * Clinician-authored recovery plan for a discharged patient. Only
+ * doctor/admin accounts can create or amend plans; the patient logs their
+ * own progress against it. Nothing is invented: an empty plan shows empty
+ * states, and no predicted recovery dates are stored.
+ */
+export const recoveryPlans = pgTable(
+  "recovery_plans",
+  {
+    id: text("id").primaryKey(), // RP-XXXXXX
+    patientId: text("patient_id").notNull(),
+    admissionId: text("admission_id"),
+    visitId: text("visit_id"),
+    dischargeAt: text("discharge_at").notNull(), // ISO timestamp
+    /** clinician-approved instructions / tasks / measurement requests */
+    instructions: jsonb("instructions").notNull().default([]),
+    /** clinician-approved escalation rules — explicit red-flag phrases */
+    redFlags: jsonb("red_flags").notNull().default([]),
+    version: integer("version").notNull().default(1),
+    createdById: text("created_by_id").notNull(),
+    createdByName: text("created_by_name").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    patientIdx: index("recovery_plans_patient_idx").on(t.patientId, t.createdAt),
+  })
+);
+
+export type RecoveryPlanRow = typeof recoveryPlans.$inferSelect;
+
+/** Patient-recorded progress against a recovery plan. */
+export const recoveryLogs = pgTable(
+  "recovery_logs",
+  {
+    id: text("id").primaryKey(), // RL-XXXXXX
+    planId: text("plan_id").notNull(),
+    patientId: text("patient_id").notNull(),
+    /** progress | symptom | measurement | task_done */
+    type: text("type").notNull(),
+    content: text("content").notNull().default(""),
+    metricName: text("metric_name").notNull().default(""),
+    metricValue: text("metric_value").notNull().default(""),
+    /** escalation-rule matches computed server-side at write time */
+    flags: jsonb("flags").notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    planIdx: index("recovery_logs_plan_idx").on(t.planId, t.createdAt),
+    patientIdx: index("recovery_logs_patient_idx").on(t.patientId, t.createdAt),
+  })
+);
+
+export type RecoveryLogRow = typeof recoveryLogs.$inferSelect;
+
+/* ─────────────── ABDM / ABHA (integration-ready layer) ─────────────── */
+
+/**
+ * ABHA linkage records. Numbers/addresses come ONLY from what the patient
+ * provides (QR/manual) — nothing is generated. Every record is explicitly
+ * unverified until an authorized ABDM gateway confirms it.
+ */
+export const abhaLinks = pgTable(
+  "abha_links",
+  {
+    id: text("id").primaryKey(), // AB-XXXXXX
+    patientId: text("patient_id").notNull(),
+    abhaNumber: text("abha_number").notNull().default(""),
+    abhaAddress: text("abha_address").notNull().default(""),
+    /** pending | linked | revoked | rejected */
+    status: text("status").notNull().default("pending"),
+    method: text("method").notNull().default(""), // qr_scan | manual_entry | gateway
+    note: text("note").notNull().default(""),
+    verifiedAt: text("verified_at"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    patientIdx: index("abha_links_patient_idx").on(t.patientId),
+  })
+);
+
+export type AbhaLinkRow = typeof abhaLinks.$inferSelect;
+
+/** Consent records for health-information exchange (ABDM consent artefacts). */
+export const abdmConsents = pgTable(
+  "abdm_consents",
+  {
+    id: text("id").primaryKey(), // AC-XXXXXX
+    patientId: text("patient_id").notNull(),
+    purpose: text("purpose").notNull(),
+    hiTypes: jsonb("hi_types").notNull().default([]),
+    rangeFrom: text("range_from").notNull().default(""),
+    rangeTo: text("range_to").notNull().default(""),
+    /** requested | granted | revoked | expired | rejected */
+    status: text("status").notNull().default("requested"),
+    gatewayRef: text("gateway_ref").notNull().default(""),
+    note: text("note").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    patientIdx: index("abdm_consents_patient_idx").on(t.patientId, t.createdAt),
+  })
+);
+
+export type AbdmConsentRow = typeof abdmConsents.$inferSelect;
+
+/* ─────────────── Lab report files (PDF uploads) ─────────────── */
+
+/**
+ * Uploaded PDF lab reports, stored BLOB inside Postgres (no public URL, no
+ * global signed link). Download is authorized server-side per request and
+ * audited; files link to exactly one lab order.
+ */
+export const labReportFiles = pgTable(
+  "lab_report_files",
+  {
+    id: text("id").primaryKey(), // LF-XXXXXX
+    labId: text("lab_id").notNull(),
+    patientId: text("patient_id").notNull(),
+    visitId: text("visit_id"),
+    filename: text("filename").notNull(),
+    mime: text("mime").notNull().default("application/pdf"),
+    size: integer("size").notNull().default(0),
+    data: text("data").notNull(), // base64-encoded PDF bytes
+    uploadedBy: text("uploaded_by").notNull(),
+    uploadedByName: text("uploaded_by_name").notNull().default(""),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+    /** pending_review | reviewed */
+    reviewStatus: text("review_status").notNull().default("pending_review"),
+    reviewedBy: text("reviewed_by"),
+    reviewedByName: text("reviewed_by_name").notNull().default(""),
+    reviewedAt: text("reviewed_at"),
+  },
+  (t) => ({
+    labIdx: index("lab_report_files_lab_idx").on(t.labId),
+  })
+);
+
+export type LabReportFileRow = typeof labReportFiles.$inferSelect;

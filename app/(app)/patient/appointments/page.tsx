@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { CalendarPlus, CalendarOff, Clock, MapPin, Search, Stethoscope, GraduationCap, ArrowRight, Sparkles, Loader2 } from "lucide-react";
+import { CalendarPlus, CalendarOff, Clock, MapPin, Search, Stethoscope, GraduationCap, ArrowRight, Sparkles, Loader2, PhoneCall, AlertTriangle, TicketCheck } from "lucide-react";
 import { useStore, type Slot } from "@/lib/store";
-import type { Appointment, Doctor } from "@/lib/types";
+import type { Appointment, Doctor, QueuePosition } from "@/lib/types";
 import {
   Button,
   Card,
@@ -28,6 +28,42 @@ const REASONS = [
   "Second opinion",
   "Lab results review",
 ];
+
+/**
+ * Loads the Razorpay checkout bridge on demand and resolves the verified
+ * handler payload (order_id | payment_id | signature) or null on cancel.
+ * No card data ever touches this app — the gateway frame collects it.
+ */
+async function openRazorpayCheckout(opts: { keyId: string; orderId: string; amount: number; currency: string }): Promise<{ order_id: string; payment_id: string; signature: string } | null> {
+  if (typeof window === "undefined" || opts.currency !== "INR") return null;
+  if (!(window as any).Razorpay) {
+    await new Promise<void>((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://checkout.razorpay.com/v1/checkout.js";
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error("checkout-load-failed"));
+      document.head.appendChild(s);
+      setTimeout(() => reject(new Error("checkout-load-timeout")), 10_000);
+    }).catch(() => null);
+  }
+  const RazorpayCtor = (window as any).Razorpay;
+  if (!RazorpayCtor) return null;
+  return new Promise((resolve) => {
+    const rzp = new RazorpayCtor({
+      key: opts.keyId,
+      order_id: opts.orderId,
+      amount: opts.amount,
+      currency: opts.currency,
+      name: "Hospital consultation fee",
+      theme_color: "#0f766e",
+      handler: (resp: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) =>
+        resolve({ order_id: resp.razorpay_order_id, payment_id: resp.razorpay_payment_id, signature: resp.razorpay_signature }),
+      modal: { ondismiss: () => resolve(null), escape: false },
+    });
+    rzp.on?.("payment.failed", () => resolve(null));
+    rzp.open();
+  });
+}
 
 export default function PatientAppointments() {
   const session = useStore((s) => s.session)!;
@@ -138,9 +174,43 @@ export default function PatientAppointments() {
     }
   }
 
+  async function screenSymptoms(text: string): Promise<{ escalate: boolean; hits: any[] } | null> {
+    try {
+      const res = await fetch("/api/triage/screen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return { escalate: !!data.escalate, hits: data.hits ?? [] };
+    } catch {
+      return null;
+    }
+  }
+
   async function submit() {
     if (!canBook || booking) return;
     setBooking(true);
+    try {
+      // ── Emergency gate: screens BEFORE any booking step, so emergency
+      // instructions are never delayed by the AI router or a model call. ──
+      const screening = await screenSymptoms(`${reason}\n${aiText || ""}`);
+      if (screening?.escalate) {
+        setEmergencyHits(screening.hits);
+        setEmergencyReason(reason.trim());
+        setEmergencyOpen(true);
+        setAwaitingAck(true); // booking pauses; the patient acks or proceeds below
+        return;
+      }
+      await initiatePaymentAndFinish();
+    } finally {
+      setBooking(false);
+    }
+  }
+
+  /** Booking continuation after the emergency gate is cleared. */
+  async function finishBooking(paidPaymentId?: string): Promise<boolean> {
     try {
       const created = await book({
         patientId: session.patientId!,
@@ -148,6 +218,7 @@ export default function PatientAppointments() {
         date,
         time: slot!,
         reason: reason.trim(),
+        paidPaymentId,
       });
       if (created) {
         setOpen(false);
@@ -156,11 +227,79 @@ export default function PatientAppointments() {
         setSlot(null);
         setQ("");
         setDeptFilter("all");
+        setAwaitingAck(false);
+        return true;
       }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  // ── Payment flow (server-configured; disabled when credentials absent) ──
+  async function initiatePaymentAndFinish(): Promise<void> {
+    if (booking) return;
+    setBooking(true);
+    setPayStatus("checking");
+    try {
+      const cfgRes = await fetch("/api/payments", { cache: "no-store" });
+      const cfg = await cfgRes.json();
+      if (!cfg.enabled || cfg.policy !== "required") {
+        // Nothing configured / payments not mandatory → book as before.
+        await finishBooking();
+        return;
+      }
+      setPayStatus("creating");
+      const orderRes = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const order = await orderRes.json();
+      if (!orderRes.ok || !order.ok) {
+        setPayStatus("failed");
+        setPayError(order.error ?? "Payment order failed.");
+        return;
+      }
+      setPayStatus("open");
+      const ok = await openRazorpayCheckout({
+        keyId: order.checkout.keyId,
+        orderId: order.checkout.orderId,
+        amount: order.checkout.amount,
+        currency: order.checkout.currency,
+      });
+      if (!ok) {
+        setPayStatus("failed");
+        setPayError("Payment window cancelled. Your appointment was NOT booked; you can retry.");
+        return;
+      }
+      setPayStatus("verifying");
+      const verifyRes = await fetch("/api/payments", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: ok.order_id, paymentId: ok.payment_id, signature: ok.signature }),
+      });
+      if (!verifyRes.ok) {
+        setPayStatus("failed");
+        setPayError("Signature verification failed — the appointment was NOT booked.");
+        return;
+      }
+      await finishBooking(order.paymentId);
+      setPayStatus("done");
     } finally {
       setBooking(false);
     }
   }
+
+  type PayStatus = "idle" | "checking" | "creating" | "open" | "verifying" | "done" | "failed";
+  const [payStatus, setPayStatus] = React.useState<PayStatus>("idle");
+  const [payError, setPayError] = React.useState<string | null>(null);
+
+  // ── Emergency override state ──
+  const [emergencyOpen, setEmergencyOpen] = React.useState(false);
+  const [emergencyHits, setEmergencyHits] = React.useState<any[]>([]);
+  const [emergencyReason, setEmergencyReason] = React.useState("");
+  const [awaitingAck, setAwaitingAck] = React.useState(false);
 
   return (
     <>
@@ -449,7 +588,12 @@ export default function PatientAppointments() {
             />
           )}
           {upcoming.map((a) => (
-            <AppointmentCard key={a.id} appt={a} onCancel={() => cancel(a.id)} />
+            <div key={a.id} className="space-y-2">
+              <AppointmentCard appt={a} onCancel={() => cancel(a.id)} />
+              {a.status === "confirmed" && a.date === today && (
+                <QueueTokenPanel appt={a} doctorName={doctors.find((d) => d.id === a.doctorId)?.name ?? "Doctor"} />
+              )}
+            </div>
           ))}
         </TabsContent>
 
@@ -460,6 +604,56 @@ export default function PatientAppointments() {
           ))}
         </TabsContent>
       </Tabs>
+
+      {/* ── Emergency override screen (interrupts routine booking) ── */}
+      <Dialog open={emergencyOpen} onOpenChange={(o) => { setEmergencyOpen(o); if (!o) setAwaitingAck(false); }}>
+        <DialogContent title="Emergency warning — act now" description="Automated safety screening flagged your symptoms." className="max-w-lg">
+          <div className="space-y-4">
+            <div className="rounded-xl border-2 border-destructive/60 bg-destructive/10 p-4">
+              <p className="flex items-center gap-2 text-lg font-bold text-destructive">
+                <AlertTriangle className="size-5" /> Seek immediate emergency medical care
+              </p>
+              <p className="mt-2 text-sm">
+                Do NOT wait for a routine appointment. Your reported symptoms (
+                "{emergencyReason}") can signal a life-threatening emergency.
+              </p>
+              <ul className="mt-2 list-disc pl-5 text-sm">
+                {emergencyHits.slice(0, 3).map((h, i) => (
+                  <li key={i}>
+                    {h.clinicalSummary?.en ?? "Careful clinical review is required."} <span className="font-mono text-[10px] opacity-60">({h.ruleId})</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <a
+              href="tel:108"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-destructive px-4 py-4 text-lg font-bold text-white shadow-sm transition-transform hover:scale-[1.01]"
+            >
+              <PhoneCall className="size-5" /> Call 108 — National Ambulance Service
+            </a>
+            <p className="text-xs text-muted-foreground">
+              Calling opens your phone dialer. This website does NOT dispatch an ambulance — no dispatch service is connected.
+              Emergency screening is automated and does NOT replace an assessment by clinical staff.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button variant="outline" className="flex-1" onClick={() => { setEmergencyOpen(false); setAwaitingAck(false); }}>
+                I will seek emergency care (recommended)
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex-1 text-muted-foreground"
+                onClick={() => {
+                  setEmergencyOpen(false);
+                  setAwaitingAck(false);
+                  void initiatePaymentAndFinish();
+                }}
+              >
+                Proceed with booking anyway
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -561,6 +755,83 @@ function AppointmentCard({ appt, onCancel }: { appt: Appointment; onCancel?: () 
           )}
         </div>
       </div>
+    </Card>
+  );
+}
+
+/**
+ * Live OPD token panel for one of today's confirmed appointments: displays the
+ * patient's token, queue position and the currently called token. Polls every
+ * 15 s; estimates are deliberately NOT invented — position only.
+ */
+function QueueTokenPanel({ appt, doctorName }: { appt: Appointment; doctorName: string }) {
+  const position = useStore((s) => s.queuePosition);
+  const refreshQueuePosition = useStore((s) => s.refreshQueuePosition);
+  const joinQueue = useStore((s) => s.joinQueue);
+  const [joining, setJoining] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    void refreshQueuePosition();
+    const iv = setInterval(() => void refreshQueuePosition(), 15_000);
+    return () => clearInterval(iv);
+  }, [refreshQueuePosition]);
+
+  const mine = position && position.entry.appointmentId === appt.id ? position : null;
+
+  if (mine && mine.entry.status === "called") {
+    return (
+      <Card className="border-primary bg-primary/5 p-4">
+        <p className="text-sm font-semibold text-primary">It's your turn — the doctor is ready for you.</p>
+        <p className="text-xs text-muted-foreground">Token #{mine.entry.tokenNo} · {doctorName}</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-4">
+      {mine ? (
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Your token</p>
+            <p className="text-3xl font-bold tabular-nums">{mine.entry.tokenNo}</p>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm">
+              {mine.ahead === 0 ? (
+                <span className="font-semibold text-primary">Your turn is approaching — please stay near the consultation room.</span>
+              ) : (
+                <>You are <b>#{mine.ahead + 1}</b> in line — {mine.ahead} patient{mine.ahead === 1 ? "" : "s"} ahead of you.</>
+              )}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {doctorName} · {mine.department}
+            </p>
+            {mine.currentCalled && (
+              <p className="mt-1 text-xs">Current token being served: <b className="tabular-nums">#{mine.currentCalled.tokenNo}</b></p>
+            )}
+            <p className="mt-1 text-[10px] text-muted-foreground">Updates live every 15 s. Waiting time depends on how long each consultation takes — no fixed estimate is shown.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">You do not hold a queue token for this doctor today yet.</p>
+          <Button
+            size="sm"
+            disabled={joining}
+            onClick={async () => {
+              setJoining(true);
+              setErr(null);
+              const r = await joinQueue(appt.id);
+              if (!r.ok) setErr(r.error ?? "Could not issue a token.");
+              setJoining(false);
+            }}
+          >
+            {joining ? "Issuing…" : <><TicketCheck /> Get my token</>}
+          </Button>
+          {err && <p className="text-xs text-destructive">{err}</p>}
+        </div>
+      )}
     </Card>
   );
 }

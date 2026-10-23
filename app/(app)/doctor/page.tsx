@@ -1,13 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, CircleDot, Play, UserX, Activity } from "lucide-react";
+import { CheckCircle2, CircleDot, Play, UserX, Activity, ListOrdered, Megaphone, ArrowRight, Volume2, UserCheck, Eye } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Avatar, Badge, Button, Card, EmptyState, Input, Label, StatCard, Textarea } from "@/components/ui/primitives";
 import { Dialog, DialogContent } from "@/components/ui/overlays";
 import { PageHeader } from "@/components/ui/misc";
 import { todayISO } from "@/lib/utils";
-import type { Appointment } from "@/lib/types";
+import type { Appointment, QueueEntry } from "@/lib/types";
+import { computeRiskAlerts } from "@/lib/risk-alerts";
+import { RiskAlertList } from "@/components/ui/risk-alerts";
 
 export default function DoctorQueue() {
   const session = useStore((s) => s.session)!;
@@ -17,6 +19,18 @@ export default function DoctorQueue() {
   const leaves = useStore((s) => s.leaves);
   const setQueueStatus = useStore((s) => s.setQueueStatus);
   const markNoShow = useStore((s) => s.markNoShow);
+  const doctorQueue = useStore((s) => s.doctorQueue);
+  const refreshDoctorQueue = useStore((s) => s.refreshDoctorQueue);
+  const callNextPatient = useStore((s) => s.callNextPatient);
+  const queueEntryAction = useStore((s) => s.queueEntryAction);
+  const symptomAssessments = useStore((s) => s.symptomAssessments);
+  const medicationOrders = useStore((s) => s.medicationOrders);
+  const visits = useStore((s) => s.visits);
+  const emergencies = useStore((s) => s.emergencies);
+  const [qOpen, setQOpen] = React.useState(false);
+  const [selectedEntry, setSelectedEntry] = React.useState<QueueEntry | null>(null);
+  const [calling, setCalling] = React.useState(false);
+  const [queueError, setQueueError] = React.useState<string | null>(null);
   const me = doctors.find((d) => d.id === session.doctorId);
 
   if (!me) {
@@ -65,6 +79,50 @@ export default function DoctorQueue() {
         <StatCard label="Waiting Queue" value={waiting.length} icon={<CircleDot className="size-4" />} tone="warning" sub="Checked in, pending consultation" />
         <StatCard label="In Consultation" value={inProgress.length} icon={<Activity className="size-4" />} tone="primary" sub="Currently with clinician" />
         <StatCard label="Completed Visits" value={completed.length} icon={<CheckCircle2 className="size-4" />} tone="success" sub={`${Math.round((completed.length / Math.max(queue.length, 1)) * 100)}% completed today`} />
+      </div>
+
+      {/* ── Waiting Queue + Call Next Patient (live token engine) ── */}
+      <div className="mt-5 grid gap-3 sm:grid-cols-[auto_auto_1fr] items-center rounded-xl border bg-card p-3">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Live queue · today</p>
+          <p className="text-sm font-medium">
+            {doctorQueue
+              ? `${doctorQueue.waiting} waiting${doctorQueue.currentCalled ? ` · token #${doctorQueue.currentCalled.tokenNo} called` : " · none called"}`
+              : "Loading…"}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setQOpen(true);
+              void refreshDoctorQueue(me.id);
+            }}
+          >
+            <ListOrdered className="size-4" /> Waiting Queue
+          </Button>
+          <Button
+            variant="gradient"
+            disabled={calling || (doctorQueue?.waiting ?? 0) === 0}
+            onClick={async () => {
+              setCalling(true);
+              setQueueError(null);
+              const r = await callNextPatient();
+              if (!r.ok) setQueueError(r.error ?? "Call failed.");
+              await refreshDoctorQueue(me.id);
+              setCalling(false);
+            }}
+          >
+            <Megaphone className="size-4" /> {calling ? "Calling…" : "Call Next Patient"}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {queueError ? (
+            <span className="text-destructive font-medium">{queueError}</span>
+          ) : (
+            <>Emergency-priority tokens are always called first. Called tokens appear on the <a className="underline" href="/display" target="_blank">waiting-room display</a>.</>
+          )}
+        </p>
       </div>
 
       <div className="mt-6 space-y-3">
@@ -122,7 +180,232 @@ export default function DoctorQueue() {
       </div>
 
       <CompleteVisitDialog appt={completing} onClose={() => setCompleting(null)} />
+
+      {/* ── Live waiting queue dialog (doctor's own session) ── */}
+      <Dialog open={qOpen} onOpenChange={(o) => { setQOpen(o); if (!o) setSelectedEntry(null); }}>
+        <DialogContent title="Waiting queue — live tokens" description="Your authorized consultation session for today." className="max-w-3xl">
+          <QueueList
+            doctorId={me.id}
+            entries={doctorQueue?.entries ?? []}
+            currentCalled={doctorQueue?.currentCalled ?? null}
+            selectedEntry={selectedEntry}
+            onRefresh={async () => refreshDoctorQueue(me.id)}
+            onSelect={(e) => setSelectedEntry(selectedEntry?.id === e.id ? null : e)}
+            onAction={async (id, action, opts) => {
+              const r = await queueEntryAction(id, action as any, opts);
+              if (!r.ok) setQueueError(r.error ?? "Action failed.");
+              await refreshDoctorQueue(me.id);
+              return r;
+            }}
+            riskInput={{ patients, appointments, medicationOrders, visits, emergencies, symptomAssessments }}
+          />
+        </DialogContent>
+      </Dialog>
     </>
+  );
+}
+
+/* ─────────────────── Queue dialog internals ─────────────────── */
+
+function QueueList({
+  entries,
+  currentCalled,
+  selectedEntry,
+  onSelect,
+  onAction,
+  onRefresh,
+  riskInput,
+}: {
+  doctorId: string;
+  entries: QueueEntry[];
+  currentCalled: QueueEntry | null;
+  selectedEntry: QueueEntry | null;
+  onSelect: (e: QueueEntry) => void;
+  onAction: (id: string, action: string, opts?: { note?: string; priority?: "normal" | "emergency" }) => Promise<{ ok: boolean; error?: string }>;
+  onRefresh: () => Promise<void>;
+  riskInput: { patients: any[]; appointments: any[]; medicationOrders: any[]; visits: any[]; emergencies: any[]; symptomAssessments: any[] };
+}) {
+  // Live refresh while the dialog is open: another staff member's actions show up here.
+  React.useEffect(() => {
+    const iv = setInterval(() => void onRefresh(), 10_000);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const waiting = entries.filter((e) => e.status === "waiting");
+
+  if (entries.length === 0) {
+    return <EmptyState emoji="🎫" title="No tokens issued for today yet" description="Walk-in and appointment tokens will appear here once issued." />;
+  }
+
+  return (
+    <div className="space-y-4">
+      {currentCalled && (
+        <div className="rounded-xl border border-primary/40 bg-primary/10 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Currently called token</p>
+              <div className="flex items-center gap-3">
+                <p className="text-3xl font-extrabold tabular-nums text-primary">Token #{currentCalled.tokenNo}</p>
+                {currentCalled.priority === "emergency" && <Badge variant="destructive">EMERGENCY</Badge>}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Patient: <span className="font-semibold text-foreground">{riskInput.patients.find((p: any) => p.id === currentCalled.patientId)?.name ?? "Unknown"}</span>
+                {currentCalled.calledAt ? ` · Called ${new Date(currentCalled.calledAt).toLocaleTimeString()}` : ""}
+                {currentCalled.calledByName ? ` by ${currentCalled.calledByName}` : ""}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+                    const u = new SpeechSynthesisUtterance(`Token number ${currentCalled.tokenNo}, please proceed to the consultation room.`);
+                    u.rate = 0.9;
+                    window.speechSynthesis.speak(u);
+                  }
+                }}
+              >
+                <Volume2 className="size-3.5" /> Repeat Audio Call
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onSelect(currentCalled)}
+              >
+                <Eye className="size-3.5" /> Live Triage File
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-muted-foreground"
+                onClick={() => onAction(currentCalled.id, "missed")}
+              >
+                <UserX className="size-3.5" /> Mark Missed
+              </Button>
+              <Button
+                size="sm"
+                variant="default"
+                onClick={() => onAction(currentCalled.id, "done")}
+              >
+                <CheckCircle2 className="size-3.5" /> Consultation Done
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+        {[...waiting].reverse().map((e) => (
+          <button
+            key={e.id}
+            onClick={() => onSelect(e)}
+            className={
+              "flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors " +
+              (selectedEntry?.id === e.id ? "border-primary bg-primary/5" : "hover:bg-muted")
+            }
+          >
+            <span className="text-xl font-bold tabular-nums">#{e.tokenNo}</span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{riskInput.patients.find((p: any) => p.id === e.patientId)?.name ?? "Unknown patient"}</p>
+              <p className="truncate text-xs text-muted-foreground">{e.note || "—"} · issued {new Date(e.createdAt).toLocaleTimeString()}</p>
+            </div>
+            {e.priority === "emergency" && <Badge variant="destructive">EMERGENCY</Badge>}
+            {e.source !== "appointment" && <Badge variant="secondary">{e.source.replace("_", " ")}</Badge>}
+          </button>
+        ))}
+      </div>
+
+      {selectedEntry && <TriageFile entry={selectedEntry} onAction={onAction} riskInput={riskInput} />}
+    </div>
+  );
+}
+
+function TriageFile({
+  entry,
+  onAction,
+  riskInput,
+}: {
+  entry: QueueEntry;
+  onAction: (id: string, action: string, opts?: { note?: string; priority?: "normal" | "emergency" }) => Promise<{ ok: boolean; error?: string }>;
+  riskInput: { patients: any[]; appointments: any[]; medicationOrders: any[]; visits: any[]; emergencies: any[]; symptomAssessments: any[] };
+}) {
+  const p = riskInput.patients.find((x) => x.id === entry.patientId);
+  // Reuse the patient's EXISTING live triage file: the symptom intake assessment + risk alerts, no duplicate records.
+  const assessment = riskInput.symptomAssessments
+    .filter((a: any) => a.patientId === entry.patientId)
+    .sort((a: any, b: any) => b.createdAt.localeCompare(a.createdAt))[0];
+  const alerts = computeRiskAlerts({
+    patient: p,
+    activeOrders: riskInput.medicationOrders,
+    emergencies: riskInput.emergencies,
+    visits: riskInput.visits,
+    assessments: riskInput.symptomAssessments,
+    queueEntries: [entry],
+  });
+  const [note, setNote] = React.useState(entry.reviewNote ?? "");
+  const [busy, setBusy] = React.useState(false);
+  const appt = riskInput.appointments.find((a: any) => a.id === entry.appointmentId);
+
+  return (
+    <div className="space-y-3 rounded-xl border bg-muted/30 p-4" data-patient-key={entry.patientId}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-semibold">Triage file — Token #{entry.tokenNo}</p>
+        <a className="text-xs underline text-muted-foreground" href={`/doctor/patients/${entry.patientId}`} target="_blank" rel="noreferrer">
+          Open full patient file <ArrowRight className="inline size-3" />
+        </a>
+      </div>
+      <p className="text-sm">{p?.name} · <span className="font-mono text-xs">{p?.patientCode || entry.patientId}</span>{p?.bloodGroup ? ` · ${p.bloodGroup}` : ""}</p>
+      {p?.allergies?.length ? <p className="text-sm text-destructive">⚠ Allergies: {p.allergies.join(", ")}</p> : <p className="text-xs text-muted-foreground">No allergy record on file — not evidence of absence.</p>}
+      {appt && <p className="text-xs text-muted-foreground">Encounter: {appt.date} {appt.time} · {appt.reason}</p>}
+
+      <RiskAlertList alerts={alerts} />
+
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live symptom intake (existing record)</p>
+        {assessment ? (
+          <div className="mt-1 space-y-1 rounded border bg-card px-3 py-2 text-sm">
+            <p>“{assessment.transcript}”</p>
+            <p className="text-xs text-muted-foreground">
+              Suggested {assessment.suggestedDepartment} · urgency {assessment.urgency} · {assessment.engine} · {new Date(assessment.createdAt).toLocaleString()}
+              {assessment.reviewOutcome ? ` · reviewed: ${assessment.reviewOutcome}` : " · awaiting clinician review"}
+            </p>
+            {assessment.urgencyNote && <p className="text-xs">{assessment.urgencyNote}</p>}
+          </div>
+        ) : (
+          <p className="mt-1 text-xs text-muted-foreground">No symptom-intake assessment recorded for this patient yet.</p>
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor={`rn-${entry.id}`}>Doctor review note (attaches to this queue entry)</Label>
+        <Textarea id={`rn-${entry.id}`} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Review outcome, urgency decision, instructions…" className="mt-1" />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              await onAction(entry.id, "review_note", { note });
+              setBusy(false);
+            }}
+          >
+            Save review note
+          </Button>
+          {entry.priority === "normal" && (
+            <Button size="sm" variant="outline" disabled={busy} onClick={async () => { setBusy(true); await onAction(entry.id, "priority", { priority: "emergency" }); setBusy(false); }}>
+              Escalate to emergency priority
+            </Button>
+          )}
+          {entry.priority === "emergency" && (
+            <Button size="sm" variant="outline" disabled={busy} onClick={async () => { setBusy(true); await onAction(entry.id, "priority", { priority: "normal" }); setBusy(false); }}>
+              Remove emergency priority
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -9,6 +9,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const STATEMENTS: string[] = [
+  // ── E-prescription safety checks ───────────────────
+  `alter table prescriptions add column if not exists checks jsonb`,
+  `alter table prescriptions add column if not exists checks_at text`,
+  `alter table prescriptions add column if not exists checks_engine text not null default ''`,
+  `alter table prescriptions add column if not exists override_reason text`,
   // ── Permanent Patient ID ─────────────────────────────
   `create sequence if not exists patient_code_seq minvalue 1`,
   `alter table patients add column if not exists patient_code text`,
@@ -145,6 +150,134 @@ const STATEMENTS: string[] = [
      when 'in-progress' then 'processing'
      else 'ordered' end
    where workflow = 'ordered' and status <> 'requested'`,
+
+  // ── OPD queue / tokens ──────────────────
+  `create table if not exists queue_entries (
+     id text primary key,
+     queue_date text not null,
+     doctor_id text not null,
+     department text not null default '',
+     patient_id text not null,
+     appointment_id text,
+     source text not null default 'appointment',
+     priority text not null default 'normal',
+     status text not null default 'waiting',
+     token_no integer not null,
+     note text not null default '',
+     review_note text,
+     called_by text,
+     called_by_name text not null default '',
+     called_at text,
+     idem_key text,
+     registered_by text,
+     created_at timestamptz not null default now(),
+     updated_at timestamptz not null default now()
+   )`,
+  `create unique index if not exists queue_entries_token_idx on queue_entries (queue_date, doctor_id, token_no)`,
+  `create unique index if not exists queue_entries_active_uniq on queue_entries (queue_date, doctor_id, patient_id) where status in ('waiting','called')`,
+  `create index if not exists queue_entries_patient_idx on queue_entries (patient_id, queue_date)`,
+  `create index if not exists queue_entries_status_idx on queue_entries (queue_date, doctor_id, status)`,
+  `create unique index if not exists queue_entries_idem_idx on queue_entries (idem_key)`,
+
+  // ── Payments ─────────────────────
+  `create table if not exists payments (
+     id text primary key,
+     provider text not null default 'razorpay',
+     provider_order_id text,
+     provider_payment_id text,
+     patient_id text not null,
+     appointment_id text,
+     amount real not null default 0,
+     currency text not null default 'INR',
+     status text not null default 'created',
+     events jsonb not null default '[]',
+     idem_key text,
+     failure_reason text not null default '',
+     created_at timestamptz not null default now(),
+     updated_at timestamptz not null default now()
+   )`,
+  `create unique index if not exists payments_provider_order_idx on payments (provider_order_id)`,
+  `create index if not exists payments_patient_idx on payments (patient_id, created_at)`,
+  `create unique index if not exists payments_idem_idx on payments (idem_key)`,
+
+  // ── Recovery & wellness tracker ────────────
+  `create table if not exists recovery_plans (
+     id text primary key,
+     patient_id text not null,
+     admission_id text,
+     visit_id text,
+     discharge_at text not null,
+     instructions jsonb not null default '[]',
+     red_flags jsonb not null default '[]',
+     version integer not null default 1,
+     created_by_id text not null,
+     created_by_name text not null default '',
+     created_at timestamptz not null default now(),
+     updated_at timestamptz not null default now()
+   )`,
+  `create index if not exists recovery_plans_patient_idx on recovery_plans (patient_id, created_at)`,
+  `create table if not exists recovery_logs (
+     id text primary key,
+     plan_id text not null,
+     patient_id text not null,
+     type text not null,
+     content text not null default '',
+     metric_name text not null default '',
+     metric_value text not null default '',
+     flags jsonb not null default '[]',
+     created_at timestamptz not null default now()
+   )`,
+  `create index if not exists recovery_logs_plan_idx on recovery_logs (plan_id, created_at)`,
+  `create index if not exists recovery_logs_patient_idx on recovery_logs (patient_id, created_at)`,
+
+  // ── ABDM / ABHA ──────────────────
+  `create table if not exists abha_links (
+     id text primary key,
+     patient_id text not null,
+     abha_number text not null default '',
+     abha_address text not null default '',
+     status text not null default 'pending',
+     method text not null default '',
+     note text not null default '',
+     verified_at text,
+     created_at timestamptz not null default now(),
+     updated_at timestamptz not null default now()
+   )`,
+  `create index if not exists abha_links_patient_idx on abha_links (patient_id)`,
+  `create table if not exists abdm_consents (
+     id text primary key,
+     patient_id text not null,
+     purpose text not null,
+     hi_types jsonb not null default '[]',
+     range_from text not null default '',
+     range_to text not null default '',
+     status text not null default 'requested',
+     gateway_ref text not null default '',
+     note text not null default '',
+     created_at timestamptz not null default now(),
+     updated_at timestamptz not null default now()
+   )`,
+  `create index if not exists abdm_consents_patient_idx on abdm_consents (patient_id, created_at)`,
+
+  // ── Lab report files (PDF) ────────────────
+  `create table if not exists lab_report_files (
+     id text primary key,
+     lab_id text not null,
+     patient_id text not null,
+     visit_id text,
+     filename text not null,
+     mime text not null default 'application/pdf',
+     size integer not null default 0,
+     data text not null,
+     uploaded_by text not null,
+     uploaded_by_name text not null default '',
+     uploaded_at timestamptz not null default now(),
+     review_status text not null default 'pending_review',
+     reviewed_by text,
+     reviewed_by_name text not null default '',
+     reviewed_at text
+   )`,
+  `create index if not exists lab_report_files_lab_idx on lab_report_files (lab_id)`,
 ];
 
 /** Reports (never merges) patients that look like the same person — manual review only. */

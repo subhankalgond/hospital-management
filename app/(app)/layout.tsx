@@ -14,12 +14,14 @@ import {
   CreditCard,
   FileHeart,
   FlaskConical,
+  HeartPulse,
   History,
   Home,
   LogOut,
   Menu,
   Mic,
   Pill,
+  QrCode,
   Stethoscope,
   TrendingUp,
   Users,
@@ -46,6 +48,8 @@ const NAV: NavItem[] = [
   { href: "/patient/symptoms", label: "Symptom check", icon: Mic, roles: ["patient"] },
   { href: "/patient/appointments", label: "Appointments", icon: CalendarDays, roles: ["patient"] },
   { href: "/patient/records", label: "Health records", icon: FileHeart, roles: ["patient"] },
+  { href: "/patient/recovery", label: "Recovery tracker", icon: HeartPulse, roles: ["patient"] },
+  { href: "/patient/abha", label: "ABHA & ABDM", icon: QrCode, roles: ["patient"] },
   { href: "/patient/billing", label: "Billing", icon: Wallet, roles: ["patient"] },
   { href: "/patient/profile", label: "Profile", icon: UserRound, roles: ["patient"] },
 
@@ -288,7 +292,7 @@ function SidebarContent({
 
 function BottomNav({ pathname }: { pathname: string }) {
   const items = NAV.filter((n) => n.roles.includes("patient")).filter((n) =>
-    ["/patient", "/patient/appointments", "/patient/records", "/patient/billing"].includes(n.href)
+    ["/patient", "/patient/appointments", "/patient/records", "/patient/recovery", "/patient/billing"].includes(n.href)
   );
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">

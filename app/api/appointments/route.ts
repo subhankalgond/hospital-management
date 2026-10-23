@@ -1,9 +1,11 @@
 import { and, eq, ne, lte, gte } from "drizzle-orm";
 import { getDb } from "@/db";
-import { appointments, doctors, invoices, leaves } from "@/db/schema";
+import { appointments, doctors, invoices, leaves, payments } from "@/db/schema";
 import { json, apiError, readJson, newId, requireAccount } from "@/lib/server/api";
 import { departmentFee } from "@/lib/defaults";
 import { todayISO, addDays } from "@/lib/utils";
+import { getPaymentConfig, recordPaidInvoice } from "@/lib/server/payments";
+import { recordAudit } from "@/lib/server/audit";
 
 export async function POST(req: Request) {
   const guard = await requireAccount();
@@ -82,6 +84,29 @@ export async function POST(req: Request) {
     return apiError("Slot just got taken. Please pick another time.", 409);
   }
 
+  // ── Payment policy: when the clinic requires prepayment, the booking is only
+  // confirmed against a VERIFIED paid order that belongs to this patient and has
+  // not yet been consumed by another appointment (retry-safe). A checkout
+  // "success" message from the browser is never trusted here.
+  const cfg = getPaymentConfig();
+  let paidPaymentId: string | null = null;
+  if (cfg.enabled && cfg.policy === "required") {
+    const pid = (body as { paidPaymentId?: string }).paidPaymentId ?? "";
+    if (!pid) {
+      return apiError("Payment required before booking confirmation.", 402);
+    }
+    const payRows = await db.select().from(payments).where(eq(payments.id, pid)).limit(1);
+    const payment = payRows[0];
+    if (!payment) return apiError("Payment record not found.", 404);
+    if (payment.patientId !== patientId) return apiError("Payment does not belong to this patient.", 403);
+    if (payment.status !== "paid") return apiError(`Payment is ${payment.status}. A verified successful payment is required.`, 409);
+    if (payment.appointmentId && payment.appointmentId !== "") {
+      // Retry after a network error: this payment already created a booking → return it.
+      return json({ ok: true, id: payment.appointmentId, invoiceId: null, reused: true });
+    }
+    paidPaymentId = payment.id;
+  }
+
   const id = newId("A-", 6);
   const now = Date.now();
 
@@ -106,8 +131,17 @@ export async function POST(req: Request) {
     date,
     dueDate: addDays(todayISO(), 14),
     items: [{ label: `${doctor.department} consultation`, amount: departmentFee(doctor.department) }],
-    status: "pending",
+    status: paidPaymentId ? "paid" : "pending",
+    paidAt: paidPaymentId ? new Date().toISOString() : null,
   });
 
-  return json({ ok: true, id, invoiceId: invId });
+  // Link the verified payment to the appointment and mirror it in billing.
+  if (paidPaymentId) {
+    await db.update(payments).set({ appointmentId: id, updatedAt: new Date() }).where(eq(payments.id, paidPaymentId));
+    const payRows = await db.select().from(payments).where(eq(payments.id, paidPaymentId)).limit(1);
+    if (payRows[0]) await recordPaidInvoice(db, payRows[0]);
+    await recordAudit(account, { action: "create", entity: "payment-link", entityId: id, detail: `appointment ${id} paid via ${paidPaymentId}` });
+  }
+
+  return json({ ok: true, id, invoiceId: invId, paymentLinked: paidPaymentId });
 }
