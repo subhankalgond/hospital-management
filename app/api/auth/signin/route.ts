@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { accounts } from "@/db/schema";
 import { json, apiError, readJson } from "@/lib/server/api";
 import { verifyPassword, hashPassword, createSession } from "@/lib/server/auth";
+import { checkRateLimit, getClientIp } from "@/lib/server/rate-limit";
 
 /**
  * Legacy accounts imported from the localStorage-only build used salted
@@ -22,6 +23,12 @@ export async function POST(req: Request) {
   const body = await readJson<{ email?: unknown; password?: unknown }>(req);
   if (!body) return apiError("Invalid request body.");
 
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(`signin:${ip}`, 15, 60_000); // 15 attempts per minute per IP
+  if (!rl.success) {
+    return apiError(`Too many sign-in attempts. Please try again in ${rl.resetSeconds} seconds.`, 429);
+  }
+
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
   if (!email || !password) return apiError("Please enter your email and password.", 422);
@@ -29,7 +36,7 @@ export async function POST(req: Request) {
   const db = await getDb();
   const rows = await db.select().from(accounts).where(eq(accounts.email, email)).limit(1);
   const account = rows[0];
-  if (!account) return apiError("No account found with this email.", 404);
+  if (!account) return apiError("Invalid email or password.", 401);
 
   let valid = false;
   if (account.hashAlgo === "sha256" && account.salt) {
@@ -37,7 +44,7 @@ export async function POST(req: Request) {
   } else {
     valid = verifyPassword(password, account.passwordHash);
   }
-  if (!valid) return apiError("Incorrect password. Please try again.", 401);
+  if (!valid) return apiError("Invalid email or password.", 401);
 
   // Upgrade legacy hashes to scrypt so the weak-legacy path disappears.
   if (account.hashAlgo !== "scrypt") {

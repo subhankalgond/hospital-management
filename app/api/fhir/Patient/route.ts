@@ -3,23 +3,44 @@ import { ilike, or, eq, desc, and, type SQL } from "drizzle-orm";
 import { getDb } from "@/db";
 import { patients } from "@/db/schema";
 import { toFhirPatient, fhirBundle, fhirOperationOutcome } from "@/lib/fhir";
+import { requireAccount } from "@/lib/server/api";
 
 /**
  * FHIR REST endpoint for Patient resources.
  *
- *   GET  /api/fhir/Patient?name=…&email=…&identifier=…   → searchset Bundle
- *   POST /api/fhir/Patient                               → create from a FHIR Patient
+ *   GET  /api/fhir/Patient?name=…&email=…&identifier=…   → searchset Bundle (authenticated)
+ *   POST /api/fhir/Patient                               → create from a FHIR Patient (clinical staff only)
  */
 export async function GET(req: Request) {
+  const guard = await requireAccount();
+  if ("response" in guard) {
+    return NextResponse.json(
+      fhirOperationOutcome("error", "security", "Authentication required to access Patient resources."),
+      { status: 401 }
+    );
+  }
+  const account = guard.account;
+
   const url = new URL(req.url);
   const name = url.searchParams.get("name")?.trim();
   const email = url.searchParams.get("email")?.trim();
   const identifier = url.searchParams.get("identifier")?.trim();
 
   const filters: SQL[] = [];
-  if (name) filters.push(ilike(patients.name, `%${name}%`));
-  if (email) filters.push(ilike(patients.email, `%${email}%`));
-  if (identifier) filters.push(eq(patients.id, identifier));
+
+  // Data isolation: Patients can only search/view their own record
+  if (account.role === "patient") {
+    filters.push(eq(patients.id, account.patientId ?? "__none__"));
+  } else if (!["admin", "doctor", "pharmacy", "lab"].includes(account.role)) {
+    return NextResponse.json(
+      fhirOperationOutcome("error", "forbidden", "Insufficient permissions to search Patient resources."),
+      { status: 403 }
+    );
+  } else {
+    if (name) filters.push(ilike(patients.name, `%${name}%`));
+    if (email) filters.push(ilike(patients.email, `%${email}%`));
+    if (identifier) filters.push(eq(patients.id, identifier));
+  }
 
   try {
     const db = await getDb();
@@ -37,8 +58,22 @@ export async function GET(req: Request) {
   }
 }
 
-/** Create a CarePulse patient directly from a FHIR Patient resource. */
+/** Create a CarePulse patient directly from a FHIR Patient resource (clinical staff only). */
 export async function POST(req: Request) {
+  const guard = await requireAccount();
+  if ("response" in guard) {
+    return NextResponse.json(
+      fhirOperationOutcome("error", "security", "Authentication required to create Patient resources."),
+      { status: 401 }
+    );
+  }
+  if (!["admin", "doctor"].includes(guard.account.role)) {
+    return NextResponse.json(
+      fhirOperationOutcome("error", "forbidden", "Only clinical staff may create Patient resources via FHIR."),
+      { status: 403 }
+    );
+  }
+
   let body: Record<string, unknown>;
   try {
     body = await req.json();

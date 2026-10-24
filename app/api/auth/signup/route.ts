@@ -6,9 +6,17 @@ import { hashPassword, createSession } from "@/lib/server/auth";
 import { validateSignUp } from "@/lib/server/validate";
 import { nextPatientCode } from "@/lib/server/patient-id";
 import { todayISO } from "@/lib/utils";
+import { checkRateLimit, getClientIp } from "@/lib/server/rate-limit";
 
 export async function POST(req: Request) {
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(`signup:${ip}`, 10, 600_000); // 10 signups per 10 mins per IP
+  if (!rl.success) {
+    return apiError(`Registration rate limit exceeded. Please try again in ${rl.resetSeconds} seconds.`, 429);
+  }
+
   const body = await readJson<Record<string, unknown>>(req);
+
   if (!body) return apiError("Invalid request body.");
 
   const parsed = validateSignUp(body);
@@ -17,7 +25,10 @@ export async function POST(req: Request) {
 
   // Admin signup is gated by a server-side access code.
   if (input.role === "admin") {
-    const expected = process.env.ADMIN_ACCESS_CODE ?? "CAREPULSE-ADMIN-2026";
+    const expected = process.env.ADMIN_ACCESS_CODE?.trim();
+    if (!expected) {
+      return apiError("Administrator registration is disabled on this server. Contact the system administrator.", 403);
+    }
     if (input.accessCode !== expected) {
       return apiError("Invalid administrator access code.", 403);
     }

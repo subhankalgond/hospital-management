@@ -21,5 +21,9 @@ coverage/
 __pycache__/
 .freebuff/
 server.log
+*.log
+*.log*
 *.tsbuildinfo
 *.mp4
+scratch/
+.kilo/
