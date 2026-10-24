@@ -22,3 +22,4 @@ __pycache__/
 .freebuff/
 server.log
 *.tsbuildinfo
+*.mp4
