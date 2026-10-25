@@ -276,6 +276,35 @@ export async function recordPaidInvoice(db: any, payment: PaymentRow): Promise<v
     .limit(1);
   if (existing[0]) return; // already billed
   const today = new Date().toISOString().slice(0, 10);
+  // If an invoice already exists for this appointment, update it instead of creating a duplicate
+  if (payment.appointmentId) {
+    const existingInv = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.appointmentId, payment.appointmentId))
+      .limit(1);
+    if (existingInv[0]) {
+      await db
+        .update(invoices)
+        .set({ status: "paid", paidAt: new Date().toISOString() })
+        .where(eq(invoices.id, existingInv[0].id));
+      await db.insert(invoiceItems).values({
+        id: newId("II-", 6),
+        invoiceId: existingInv[0].id,
+        patientId: payment.patientId,
+        sourceType: "appointment",
+        sourceOrderId: payment.id,
+        label: "Paid consultation fee",
+        quantity: 1,
+        unitPrice: payment.amount,
+        amount: payment.amount,
+        status: "billed",
+        currency: payment.currency,
+      });
+      return;
+    }
+  }
+
   const invoiceRows = await db
     .insert(invoices)
     .values({

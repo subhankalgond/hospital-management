@@ -277,7 +277,8 @@ const STATEMENTS: string[] = [
      reviewed_by_name text not null default '',
      reviewed_at text
    )`,
-  `create index if not exists lab_report_files_lab_idx on lab_report_files (lab_id)`,
+  `create unique index if not exists lab_report_files_lab_idx on lab_report_files (lab_id)`,
+  `create unique index if not exists appointments_slot_active_uniq on appointments (doctor_id, date, time) where status not in ('cancelled')`,
 ];
 
 /** Reports (never merges) patients that look like the same person — manual review only. */
@@ -304,12 +305,24 @@ async function reportDuplicatePatients(db: any): Promise<void> {
 
 const g = globalThis as unknown as { __cpMigrationsApplied?: Promise<void> };
 
-/** Apply the upgrade once per process. Additive-only; failures are logged loudly. */
+/** Apply the upgrade once per process. Additive-only; memoized with version tracking. */
 export function ensureSchema(): Promise<void> {
   if (!g.__cpMigrationsApplied) {
     g.__cpMigrationsApplied = (async () => {
       const { getDb } = await import("@/db");
       const db = await getDb();
+      try {
+        // Create migration tracking table if not exists
+        await db.execute(`create table if not exists _schema_migrations (version integer primary key, applied_at timestamptz default now())`);
+        const checked = await db.execute(`select 1 from _schema_migrations where version = 2 limit 1`);
+        const rows = Array.isArray(checked) ? checked : (checked as any)?.rows ?? [];
+        if (rows.length > 0) {
+          return; // Already up to date!
+        }
+      } catch {
+        // fallback to executing statements
+      }
+
       for (let i = 0; i < STATEMENTS.length; i++) {
         try {
           await db.execute(STATEMENTS[i]);
@@ -320,6 +333,9 @@ export function ensureSchema(): Promise<void> {
           );
         }
       }
+      try {
+        await db.execute(`insert into _schema_migrations (version) values (2) on conflict (version) do nothing`);
+      } catch {}
       await reportDuplicatePatients(db);
     })();
   }

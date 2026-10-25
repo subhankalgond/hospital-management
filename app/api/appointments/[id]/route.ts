@@ -23,9 +23,20 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const appt = rows[0];
   if (!appt) return apiError("Appointment not found.", 404);
 
-  // Patients may only touch their own appointments.
-  if (account.role === "patient" && appt.patientId !== account.patientId) {
-    return apiError("You can only manage your own appointments.", 403);
+  // Role-based authorization rules:
+  // Patients may only touch their own appointments, and can ONLY cancel or reschedule.
+  if (account.role === "patient") {
+    if (appt.patientId !== account.patientId) {
+      return apiError("You can only manage your own appointments.", 403);
+    }
+    if (body.action !== "cancel" && body.action !== "reschedule") {
+      return apiError("Patients are not authorized to perform clinical or administrative status updates.", 403);
+    }
+  }
+
+  // Doctors may only update queue status, mark no-show, or manage appointments assigned to them.
+  if (account.role === "doctor" && appt.doctorId !== account.doctorId) {
+    return apiError("You can only manage appointments assigned to you.", 403);
   }
 
   const patch: Partial<typeof appointments.$inferInsert> = {};

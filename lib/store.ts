@@ -351,6 +351,7 @@ const IMPORT_FLAG = "carepulse-legacy-imported";
 
 /** module-level singletons (survive only within one page session) */
 let inFlightRefresh: Promise<void> | null = null;
+let inFlightBoot: Promise<void> | null = null;
 
 /**
  * Timestamp of the last sign-out. boot() refuses to "resurrect" a session for
@@ -457,37 +458,46 @@ export const useStore = create<State>()((set, get) => ({
   boot: async () => {
     const cur = get().bootState;
     if (cur === "loading" || cur === "ready") return;
-    set({ bootState: "loading" });
+    if (cur === "signed-out" && Date.now() - signedOutAt < SESSION_SUPPRESS_MS) return;
+    if (inFlightBoot) return inFlightBoot;
 
-    const legacy = readLegacySnapshot();
-    const importedOn = typeof window !== "undefined" ? window.localStorage.getItem(IMPORT_FLAG) : null;
+    inFlightBoot = (async () => {
+      set({ bootState: "loading" });
+      try {
+        const legacy = readLegacySnapshot();
+        const importedOn = typeof window !== "undefined" ? window.localStorage.getItem(IMPORT_FLAG) : null;
 
-    const res = await fetch("/api/state", { cache: "no-store" }).catch(() => null);
-    if (!res) {
-      set({ bootState: "error", bootError: "Cannot reach the server. Check your connection and try again." });
-      return;
-    }
-    if (res.status === 401) {
-      set({ bootState: "signed-out", bootError: null, legacySnapshot: legacy, legacyImportedOn: importedOn });
-      return;
-    }
-    if (!res.ok) {
-      set({ bootState: "error", bootError: `Server error (${res.status}). Please try again.` });
-      return;
-    }
-    const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
-    if (!data || typeof data !== "object") {
-      set({ bootState: "error", bootError: "Server returned an unreadable response." });
-      return;
-    }
-    // Just signed out? Ignore any session the server still reports — the
-    // sign-out request is in flight; acting on it would trap the user in the app.
-    if (Date.now() - signedOutAt < SESSION_SUPPRESS_MS) {
-      set({ bootState: "signed-out", bootError: null, legacySnapshot: legacy, legacyImportedOn: importedOn, session: null });
-      return;
-    }
-    const patch = applySnapshot(get(), data);
-    set({ bootState: "ready", bootError: null, legacySnapshot: legacy, legacyImportedOn: importedOn, ...patch });
+        const res = await fetch("/api/state", { cache: "no-store" }).catch(() => null);
+        if (!res) {
+          set({ bootState: "error", bootError: "Cannot reach the server. Check your connection and try again." });
+          return;
+        }
+        if (res.status === 401) {
+          set({ bootState: "signed-out", bootError: null, legacySnapshot: legacy, legacyImportedOn: importedOn, session: null });
+          return;
+        }
+        if (!res.ok) {
+          set({ bootState: "error", bootError: `Server error (${res.status}). Please try again.` });
+          return;
+        }
+        const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+        if (!data || typeof data !== "object") {
+          set({ bootState: "error", bootError: "Server returned an unreadable response." });
+          return;
+        }
+        // Just signed out? Ignore any session the server still reports — the
+        // sign-out request is in flight; acting on it would trap the user in the app.
+        if (Date.now() - signedOutAt < SESSION_SUPPRESS_MS) {
+          set({ bootState: "signed-out", bootError: null, legacySnapshot: legacy, legacyImportedOn: importedOn, session: null });
+          return;
+        }
+        const patch = applySnapshot(get(), data);
+        set({ bootState: "ready", bootError: null, legacySnapshot: legacy, legacyImportedOn: importedOn, ...patch });
+      } finally {
+        inFlightBoot = null;
+      }
+    })();
+    return inFlightBoot;
   },
 
   refresh: async () => {
@@ -607,6 +617,24 @@ export const useStore = create<State>()((set, get) => ({
     }
     await get().refresh();
     const doctor = doctors.find((d) => d.id === input.doctorId);
+
+    if (res.data?.requiresPayment) {
+      return {
+        id: res.data?.id ?? "A-",
+        patientId: input.patientId,
+        doctorId: input.doctorId,
+        date: input.date,
+        time: input.time,
+        durationMin: 30,
+        reason: input.reason,
+        status: "pending_payment",
+        createdAt: Date.now(),
+        requiresPayment: true,
+        checkout: res.data?.checkout,
+        paymentId: res.data?.paymentId,
+      };
+    }
+
     get().toast({
       title: "Appointment booked",
       description: `${doctor?.name ?? "Doctor"} · ${input.date} at ${input.time}.`,

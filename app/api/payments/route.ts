@@ -1,4 +1,6 @@
+import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
+import { appointments } from "@/db/schema";
 import { json, apiError, readJson, requireAccount } from "@/lib/server/api";
 import {
   getPaymentConfig,
@@ -83,10 +85,17 @@ export async function PUT(req: Request) {
   });
   if (!applied.ok || !applied.payment) return apiError(applied.error ?? "Verification failed.", 404);
   if (applied.payment.appointmentId) {
+    await db.update(appointments).set({ status: "confirmed" }).where(eq(appointments.id, applied.payment.appointmentId));
     await recordPaidInvoice(db, applied.payment);
   }
   await recordAudit(account, { action: "update", entity: "payment", entityId: applied.payment.id, detail: "checkout verified" });
-  return json({ ok: true, status: applied.payment.status, duplicate: applied.duplicate });
+  return json({
+    ok: true,
+    status: applied.payment.status,
+    duplicate: applied.duplicate,
+    paymentId: applied.payment.id,
+    appointmentId: applied.payment.appointmentId,
+  });
 }
 
 /** DELETE is not supported — refunds use the webhook/payment ref in Razorpay. */

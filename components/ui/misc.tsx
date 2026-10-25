@@ -9,6 +9,7 @@ const apptMap: Record<AppointmentStatus, { label: string; variant: React.Compone
   completed: { label: "Completed", variant: "success" },
   cancelled: { label: "Cancelled", variant: "destructive" },
   "no-show": { label: "No-show", variant: "warning" },
+  pending_payment: { label: "Pending Payment", variant: "warning" },
 };
 
 const invMap: Record<InvoiceStatus, { label: string; variant: React.ComponentProps<typeof Badge>["variant"] }> = {
@@ -23,8 +24,8 @@ const labMap: Record<LabStatus, { label: string; variant: React.ComponentProps<t
   resulted: { label: "Resulted", variant: "success" },
 };
 
-export function ApptStatus({ status }: { status: AppointmentStatus }) {
-  const v = apptMap[status];
+export function ApptStatus({ status }: { status: AppointmentStatus | string }) {
+  const v = apptMap[status as AppointmentStatus] ?? { label: status, variant: "secondary" as const };
   return <Badge variant={v.variant}>{v.label}</Badge>;
 }
 

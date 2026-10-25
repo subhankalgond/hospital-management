@@ -1,4 +1,6 @@
+import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
+import { appointments } from "@/db/schema";
 import { json } from "@/lib/server/api";
 import { applyGatewayEvent, verifyWebhookSignature, recordPaidInvoice } from "@/lib/server/payments";
 
@@ -55,6 +57,7 @@ export async function POST(req: Request) {
       failureReason: paymentEntity.error_description ?? paymentEntity.error_reason,
     });
     if (applied?.ok && applied.payment?.appointmentId && applied.payment.status === "paid") {
+      await db.update(appointments).set({ status: "confirmed" }).where(eq(appointments.id, applied.payment.appointmentId));
       await recordPaidInvoice(db, applied.payment);
     }
   }

@@ -189,9 +189,98 @@ export default function PatientAppointments() {
     }
   }
 
+  type PayStatus = "idle" | "reserving" | "open" | "verifying" | "done" | "cancelled" | "failed";
+  const [payStatus, setPayStatus] = React.useState<PayStatus>("idle");
+  const [payError, setPayError] = React.useState<string | null>(null);
+  const [activeReservation, setActiveReservation] = React.useState<{ id: string; checkout: any; paymentId: string } | null>(null);
+
+  function resetForm() {
+    setDoctorId("");
+    setReason("");
+    setSlot(null);
+    setQ("");
+    setDeptFilter("all");
+    setAwaitingAck(false);
+    setActiveReservation(null);
+    setPayStatus("idle");
+    setPayError(null);
+  }
+
+  async function initiateBookingAndPayment(existing?: { id: string; checkout: any; paymentId: string }): Promise<void> {
+    setPayError(null);
+    let target = existing || activeReservation;
+
+    if (!target) {
+      setPayStatus("reserving");
+      const appt = await book({
+        patientId: session.patientId!,
+        doctorId,
+        date,
+        time: slot!,
+        reason: reason.trim(),
+      });
+      if (!appt) {
+        setPayStatus("idle");
+        return;
+      }
+      if (!appt.requiresPayment || !appt.checkout) {
+        // Confirmed directly without prepayment
+        setPayStatus("done");
+        setOpen(false);
+        resetForm();
+        return;
+      }
+      target = {
+        id: appt.id,
+        checkout: appt.checkout,
+        paymentId: appt.paymentId!,
+      };
+      setActiveReservation(target);
+    }
+
+    setPayStatus("open");
+    const ok = await openRazorpayCheckout({
+      keyId: target.checkout.keyId,
+      orderId: target.checkout.orderId,
+      amount: target.checkout.amount,
+      currency: target.checkout.currency,
+    });
+
+    if (!ok) {
+      setPayStatus("cancelled");
+      setPayError("Payment was cancelled or closed. Your slot reservation is held for 15 minutes — you can complete payment now or release the reservation.");
+      return;
+    }
+
+    setPayStatus("verifying");
+    const verifyRes = await fetch("/api/payments", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: ok.order_id, paymentId: ok.payment_id, signature: ok.signature }),
+    });
+
+    if (!verifyRes.ok) {
+      const err = await verifyRes.json().catch(() => ({}));
+      setPayStatus("failed");
+      setPayError(err.error || "Payment signature verification failed. Please check your account or try again.");
+      return;
+    }
+
+    setPayStatus("done");
+    useStore.getState().toast({
+      title: "Appointment confirmed! 🎉",
+      description: `Payment verified. Booked for ${date} at ${slot}.`,
+      variant: "success",
+    });
+    await useStore.getState().refresh();
+    setOpen(false);
+    resetForm();
+  }
+
   async function submit() {
     if (!canBook || booking) return;
     setBooking(true);
+    setPayError(null);
     try {
       // ── Emergency gate: screens BEFORE any booking step, so emergency
       // instructions are never delayed by the AI router or a model call. ──
@@ -203,97 +292,11 @@ export default function PatientAppointments() {
         setAwaitingAck(true); // booking pauses; the patient acks or proceeds below
         return;
       }
-      await initiatePaymentAndFinish();
+      await initiateBookingAndPayment();
     } finally {
       setBooking(false);
     }
   }
-
-  /** Booking continuation after the emergency gate is cleared. */
-  async function finishBooking(paidPaymentId?: string): Promise<boolean> {
-    try {
-      const created = await book({
-        patientId: session.patientId!,
-        doctorId,
-        date,
-        time: slot!,
-        reason: reason.trim(),
-        paidPaymentId,
-      });
-      if (created) {
-        setOpen(false);
-        setDoctorId("");
-        setReason("");
-        setSlot(null);
-        setQ("");
-        setDeptFilter("all");
-        setAwaitingAck(false);
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  }
-
-  // ── Payment flow (server-configured; disabled when credentials absent) ──
-  async function initiatePaymentAndFinish(): Promise<void> {
-    if (booking) return;
-    setBooking(true);
-    setPayStatus("checking");
-    try {
-      const cfgRes = await fetch("/api/payments", { cache: "no-store" });
-      const cfg = await cfgRes.json();
-      if (!cfg.enabled || cfg.policy !== "required") {
-        // Nothing configured / payments not mandatory → book as before.
-        await finishBooking();
-        return;
-      }
-      setPayStatus("creating");
-      const orderRes = await fetch("/api/payments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const order = await orderRes.json();
-      if (!orderRes.ok || !order.ok) {
-        setPayStatus("failed");
-        setPayError(order.error ?? "Payment order failed.");
-        return;
-      }
-      setPayStatus("open");
-      const ok = await openRazorpayCheckout({
-        keyId: order.checkout.keyId,
-        orderId: order.checkout.orderId,
-        amount: order.checkout.amount,
-        currency: order.checkout.currency,
-      });
-      if (!ok) {
-        setPayStatus("failed");
-        setPayError("Payment window cancelled. Your appointment was NOT booked; you can retry.");
-        return;
-      }
-      setPayStatus("verifying");
-      const verifyRes = await fetch("/api/payments", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: ok.order_id, paymentId: ok.payment_id, signature: ok.signature }),
-      });
-      if (!verifyRes.ok) {
-        setPayStatus("failed");
-        setPayError("Signature verification failed — the appointment was NOT booked.");
-        return;
-      }
-      await finishBooking(order.paymentId);
-      setPayStatus("done");
-    } finally {
-      setBooking(false);
-    }
-  }
-
-  type PayStatus = "idle" | "checking" | "creating" | "open" | "verifying" | "done" | "failed";
-  const [payStatus, setPayStatus] = React.useState<PayStatus>("idle");
-  const [payError, setPayError] = React.useState<string | null>(null);
 
   // ── Emergency override state ──
   const [emergencyOpen, setEmergencyOpen] = React.useState(false);
@@ -307,7 +310,7 @@ export default function PatientAppointments() {
         title="Appointments"
         description="Book, reschedule or review your visits."
         actions={
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
             <DialogTrigger asChild>
               <Button variant="gradient">
                 <CalendarPlus /> Book appointment
@@ -316,7 +319,7 @@ export default function PatientAppointments() {
             <DialogContent
               title="Book an appointment"
               description="Choose from doctors registered on CarePulse."
-              className="max-w-xl"
+              className="max-w-xl max-h-[90vh] overflow-y-auto"
             >
               {doctors.length === 0 ? (
                 <div className="py-4">
@@ -461,14 +464,14 @@ export default function PatientAppointments() {
                   <div className="space-y-1.5">
                     <Label>Available slots</Label>
                     {doctorId ? (
-                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
                         {slots.map((s: Slot) => (
                           <button
                             key={s.time}
                             disabled={!s.available}
                             onClick={() => setSlot(s.time)}
                             className={
-                              "rounded-lg border px-2 py-2 text-xs font-medium tabular-nums transition-all " +
+                              "min-h-[38px] rounded-lg border px-2 py-2 text-xs font-medium tabular-nums transition-all " +
                               (slot === s.time
                                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                                 : s.available
@@ -562,8 +565,76 @@ export default function PatientAppointments() {
                     </div>
                   </div>
 
-                  <Button variant="gradient" className="w-full" size="lg" disabled={!canBook || booking} onClick={submit}>
-                    {booking ? "Booking…" : "Confirm booking"}
+                  {/* Consultation fee breakdown */}
+                  <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm">
+                    <div>
+                      <p className="font-semibold text-foreground">Consultation Fee</p>
+                      <p className="text-xs text-muted-foreground">Standard hospital consultation charge</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-base font-bold text-primary">₹500</p>
+                      <p className="text-[10px] text-muted-foreground">Razorpay (Cards, UPI, NetBanking)</p>
+                    </div>
+                  </div>
+
+                  {/* Payment error or active reservation recovery */}
+                  {payError && (
+                    <div className="space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-sm">
+                      <div className="flex items-start gap-2 font-medium text-amber-700 dark:text-amber-400">
+                        <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                        <span>{payError}</span>
+                      </div>
+                      {activeReservation && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="gradient"
+                            disabled={booking}
+                            onClick={() => void initiateBookingAndPayment(activeReservation)}
+                          >
+                            Retry Payment (₹500)
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={booking}
+                            onClick={async () => {
+                              if (activeReservation) {
+                                await cancel(activeReservation.id);
+                              }
+                              resetForm();
+                            }}
+                          >
+                            Release Slot Reservation
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <Button
+                    variant="gradient"
+                    className="w-full min-h-[44px]"
+                    size="lg"
+                    disabled={!canBook || booking}
+                    onClick={submit}
+                  >
+                    {booking ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="size-4 animate-spin" />
+                        {payStatus === "reserving"
+                          ? "Reserving slot…"
+                          : payStatus === "open"
+                          ? "Awaiting payment in Razorpay…"
+                          : payStatus === "verifying"
+                          ? "Verifying payment…"
+                          : "Booking…"}
+                      </span>
+                    ) : (
+                      "Confirm & Pay ₹500"
+                    )}
                   </Button>
                 </div>
               )}
@@ -645,7 +716,7 @@ export default function PatientAppointments() {
                 onClick={() => {
                   setEmergencyOpen(false);
                   setAwaitingAck(false);
-                  void initiatePaymentAndFinish();
+                  void initiateBookingAndPayment();
                 }}
               >
                 Proceed with booking anyway
@@ -663,10 +734,66 @@ function AppointmentCard({ appt, onCancel }: { appt: Appointment; onCancel?: () 
   const reschedule = useStore((s) => s.rescheduleAppointment);
   const [reschedOpen, setReschedOpen] = React.useState(false);
   const [reschedBusy, setReschedBusy] = React.useState(false);
+  const [paying, setPaying] = React.useState(false);
   const [date, setDate] = React.useState(appt.date);
   const [time, setTime] = React.useState(appt.time);
   const doc = doctors.find((d) => d.id === appt.doctorId);
   const isActive = appt.status !== "cancelled" && appt.status !== "completed";
+
+  async function handlePayPending() {
+    if (paying) return;
+    setPaying(true);
+    try {
+      const res = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appointmentId: appt.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        useStore.getState().toast({
+          title: "Could not start checkout",
+          description: data.error ?? "Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const ok = await openRazorpayCheckout({
+        keyId: data.checkout.keyId,
+        orderId: data.checkout.orderId,
+        amount: data.checkout.amount,
+        currency: data.checkout.currency,
+      });
+      if (!ok) {
+        useStore.getState().toast({
+          title: "Payment cancelled",
+          description: "Payment was not completed. Your slot remains held for 15 minutes.",
+        });
+        return;
+      }
+      const verifyRes = await fetch("/api/payments", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: ok.order_id, paymentId: ok.payment_id, signature: ok.signature }),
+      });
+      if (!verifyRes.ok) {
+        useStore.getState().toast({
+          title: "Verification failed",
+          description: "Payment could not be verified by the server. Please check your account.",
+          variant: "destructive",
+        });
+        return;
+      }
+      useStore.getState().toast({
+        title: "Appointment confirmed! 🎉",
+        description: "Payment verified. Your appointment is now confirmed.",
+        variant: "success",
+      });
+      await useStore.getState().refresh();
+    } finally {
+      setPaying(false);
+    }
+  }
 
   return (
     <Card className="p-5 transition-all hover:shadow-lift">
@@ -704,7 +831,7 @@ function AppointmentCard({ appt, onCancel }: { appt: Appointment; onCancel?: () 
               Cancel
             </Button>
           )}
-          {isActive && (
+          {isActive && appt.status !== "pending_payment" && (
             <Dialog open={reschedOpen} onOpenChange={setReschedOpen}>
               <DialogTrigger asChild>
                 <Button variant="secondary" size="sm">
@@ -755,6 +882,38 @@ function AppointmentCard({ appt, onCancel }: { appt: Appointment; onCancel?: () 
           )}
         </div>
       </div>
+
+      {/* Pending payment reservation action banner */}
+      {appt.status === "pending_payment" && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+          <div className="flex items-center gap-2 font-medium text-amber-700 dark:text-amber-400">
+            <AlertTriangle className="size-4 shrink-0" />
+            <span>Slot held temporarily (15 min) · Payment required to confirm</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="gradient"
+              disabled={paying}
+              onClick={handlePayPending}
+            >
+              {paying ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Opening…
+                </span>
+              ) : (
+                "Pay ₹500 to Confirm"
+              )}
+            </Button>
+            {onCancel && (
+              <Button size="sm" variant="outline" onClick={onCancel}>
+                Release
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

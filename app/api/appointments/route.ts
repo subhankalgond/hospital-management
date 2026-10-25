@@ -4,7 +4,7 @@ import { appointments, doctors, invoices, leaves, payments } from "@/db/schema";
 import { json, apiError, readJson, newId, requireAccount } from "@/lib/server/api";
 import { departmentFee } from "@/lib/defaults";
 import { todayISO, addDays } from "@/lib/utils";
-import { getPaymentConfig, recordPaidInvoice } from "@/lib/server/payments";
+import { getPaymentConfig, createOrderFor, recordPaidInvoice } from "@/lib/server/payments";
 import { recordAudit } from "@/lib/server/audit";
 
 export async function POST(req: Request) {
@@ -18,13 +18,14 @@ export async function POST(req: Request) {
     date?: string;
     time?: string;
     reason?: string;
+    paidPaymentId?: string;
   }>(req);
-  if (!body) return apiError("Invalid request body.");
+  if (!body) return apiError("Invalid request body.", 400);
 
-  // Patients may only book for themselves; staff may book for any patient.
-  const patientId =
-    account.role === "patient" ? account.patientId : body.patientId ?? "";
-  if (!patientId) return apiError("Missing patient.", 422);
+  // Authorization check: Patients may only book for themselves; staff may book for any patient.
+  const isPatient = account.role === "patient";
+  const patientId = isPatient ? account.patientId : body.patientId ?? account.patientId ?? "";
+  if (!patientId) return apiError("Missing patient identifier.", 422);
 
   const doctorId = body.doctorId ?? "";
   const date = body.date ?? "";
@@ -33,8 +34,21 @@ export async function POST(req: Request) {
   if (!doctorId || !date || !time) {
     return apiError("Doctor, date and time are required.", 422);
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return apiError("Invalid date.", 422);
-  if (!/^\d{2}:\d{2}$/.test(time)) return apiError("Invalid time.", 422);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return apiError("Invalid date format.", 422);
+  if (!/^\d{2}:\d{2}$/.test(time)) return apiError("Invalid time format.", 422);
+
+  // Past appointment prevention
+  const today = todayISO();
+  if (date < today) {
+    return apiError("Appointments cannot be booked for past dates.", 422);
+  }
+  if (date === today) {
+    const [h, m] = time.split(":").map(Number);
+    const now = new Date();
+    if (h * 60 + m <= now.getHours() * 60 + now.getMinutes()) {
+      return apiError("Selected slot has already passed today.", 422);
+    }
+  }
 
   const db = await getDb();
 
@@ -65,11 +79,24 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Slot conflict check + insert. PGlite is single-connection so the
-  // check-then-insert is effectively atomic in dev; on Supabase the unique
-  // index (created via migration SQL below) is the hard guarantee.
+  // ── Slot expiration: release pending_payment reservations older than 15 minutes ──
+  const fifteenMinutesAgo = String(Date.now() - 15 * 60 * 1000);
+  await db
+    .update(appointments)
+    .set({ status: "cancelled", notes: "Reservation expired" })
+    .where(
+      and(
+        eq(appointments.doctorId, doctorId),
+        eq(appointments.date, date),
+        eq(appointments.time, time),
+        eq(appointments.status, "pending_payment"),
+        lte(appointments.createdAt, fifteenMinutesAgo)
+      )
+    );
+
+  // ── Slot conflict check: check for any active booking on this slot ──
   const conflict = await db
-    .select({ id: appointments.id })
+    .select()
     .from(appointments)
     .where(
       and(
@@ -80,68 +107,148 @@ export async function POST(req: Request) {
       )
     )
     .limit(1);
+
+  let existingReservationId: string | null = null;
   if (conflict.length > 0) {
-    return apiError("Slot just got taken. Please pick another time.", 409);
+    const existing = conflict[0];
+    // If it's a pending reservation belonging to the same patient, reuse it!
+    if (existing.status === "pending_payment" && existing.patientId === patientId) {
+      existingReservationId = existing.id;
+    } else {
+      return apiError("This time slot is no longer available. Please select another time.", 409);
+    }
   }
 
-  // ── Payment policy: when the clinic requires prepayment, the booking is only
-  // confirmed against a VERIFIED paid order that belongs to this patient and has
-  // not yet been consumed by another appointment (retry-safe). A checkout
-  // "success" message from the browser is never trusted here.
+  // ── Payment policy evaluation: only patients are subject to payment gateway prepayment. ──
+  // Staff (administrators, clinical staff) can always book without requiring a frontend checkout flow.
   const cfg = getPaymentConfig();
-  let paidPaymentId: string | null = null;
-  if (cfg.enabled && cfg.policy === "required") {
-    const pid = (body as { paidPaymentId?: string }).paidPaymentId ?? "";
-    if (!pid) {
-      return apiError("Payment required before booking confirmation.", 402);
-    }
+  const requiresPrepayment = isPatient && cfg.enabled && cfg.policy === "required";
+
+  // CASE 1: Prepayment required and verified payment ID provided (finishing booking)
+  if (requiresPrepayment && body.paidPaymentId) {
+    const pid = body.paidPaymentId;
     const payRows = await db.select().from(payments).where(eq(payments.id, pid)).limit(1);
     const payment = payRows[0];
     if (!payment) return apiError("Payment record not found.", 404);
     if (payment.patientId !== patientId) return apiError("Payment does not belong to this patient.", 403);
-    if (payment.status !== "paid") return apiError(`Payment is ${payment.status}. A verified successful payment is required.`, 409);
-    if (payment.appointmentId && payment.appointmentId !== "") {
-      // Retry after a network error: this payment already created a booking → return it.
-      return json({ ok: true, id: payment.appointmentId, invoiceId: null, reused: true });
+    if (payment.status !== "paid") return apiError(`Payment status is ${payment.status}. A verified successful payment is required.`, 409);
+
+    if (payment.appointmentId && payment.appointmentId !== "" && payment.appointmentId !== existingReservationId) {
+      return json({ ok: true, id: payment.appointmentId, status: "confirmed", reused: true });
     }
-    paidPaymentId = payment.id;
+
+    const apptId = existingReservationId ?? newId("A-", 6);
+    const now = Date.now();
+
+    if (existingReservationId) {
+      await db
+        .update(appointments)
+        .set({ status: "confirmed", reason, updatedAt: new Date() })
+        .where(eq(appointments.id, apptId));
+    } else {
+      await db.insert(appointments).values({
+        id: apptId,
+        patientId,
+        doctorId,
+        date,
+        time,
+        durationMin: 30,
+        reason,
+        status: "confirmed",
+        createdAt: String(now),
+      });
+    }
+
+    // Link payment to confirmed appointment
+    await db.update(payments).set({ appointmentId: apptId, updatedAt: new Date() }).where(eq(payments.id, payment.id));
+    const updatedPayment = (await db.select().from(payments).where(eq(payments.id, payment.id)).limit(1))[0];
+    if (updatedPayment) {
+      await recordPaidInvoice(db, updatedPayment);
+    }
+
+    await recordAudit(account, { action: "create", entity: "payment-link", entityId: apptId, detail: `appointment ${apptId} confirmed via ${payment.id}` });
+    return json({ ok: true, id: apptId, status: "confirmed", paymentLinked: payment.id });
   }
 
-  const id = newId("A-", 6);
+  // CASE 2: Prepayment required, initiating booking (create pending reservation & Razorpay order)
+  if (requiresPrepayment && !body.paidPaymentId) {
+    const apptId = existingReservationId ?? newId("A-", 6);
+    const now = Date.now();
+
+    if (!existingReservationId) {
+      await db.insert(appointments).values({
+        id: apptId,
+        patientId,
+        doctorId,
+        date,
+        time,
+        durationMin: 30,
+        reason,
+        status: "pending_payment",
+        createdAt: String(now),
+      });
+    }
+
+    const orderResult = await createOrderFor(db, {
+      patientId,
+      appointmentId: apptId,
+      idemKey: `pay-appt-${apptId}`,
+    });
+
+    if (!orderResult.ok) {
+      // If payment order creation failed, cancel the pending reservation
+      if (!existingReservationId) {
+        await db.update(appointments).set({ status: "cancelled", notes: "Payment order creation failed" }).where(eq(appointments.id, apptId));
+      }
+      return apiError(orderResult.error, orderResult.status);
+    }
+
+    return json({
+      ok: true,
+      id: apptId,
+      status: "pending_payment",
+      requiresPayment: true,
+      checkout: orderResult.checkout,
+      paymentId: orderResult.payment.id,
+    });
+  }
+
+  // CASE 3: No prepayment required (staff booking on behalf of patient, or payment policy off/optional)
+  const apptId = existingReservationId ?? newId("A-", 6);
   const now = Date.now();
 
-  await db.insert(appointments).values({
-    id,
-    patientId,
-    doctorId,
-    date,
-    time,
-    durationMin: 30,
-    reason,
-    status: "confirmed",
-    createdAt: String(now),
-  });
+  if (existingReservationId) {
+    await db
+      .update(appointments)
+      .set({ status: "confirmed", reason })
+      .where(eq(appointments.id, apptId));
+  } else {
+    await db.insert(appointments).values({
+      id: apptId,
+      patientId,
+      doctorId,
+      date,
+      time,
+      durationMin: 30,
+      reason,
+      status: "confirmed",
+      createdAt: String(now),
+    });
+  }
 
-  // Auto-generate the consultation invoice from the department fee.
+  // Auto-generate consultation invoice
   const invId = newId("INV-", 6);
   await db.insert(invoices).values({
     id: invId,
     patientId,
-    appointmentId: id,
+    appointmentId: apptId,
     date,
-    dueDate: addDays(todayISO(), 14),
+    dueDate: addDays(today, 14),
     items: [{ label: `${doctor.department} consultation`, amount: departmentFee(doctor.department) }],
-    status: paidPaymentId ? "paid" : "pending",
-    paidAt: paidPaymentId ? new Date().toISOString() : null,
+    status: "pending",
+    paidAt: null,
   });
 
-  // Link the verified payment to the appointment and mirror it in billing.
-  if (paidPaymentId) {
-    await db.update(payments).set({ appointmentId: id, updatedAt: new Date() }).where(eq(payments.id, paidPaymentId));
-    const payRows = await db.select().from(payments).where(eq(payments.id, paidPaymentId)).limit(1);
-    if (payRows[0]) await recordPaidInvoice(db, payRows[0]);
-    await recordAudit(account, { action: "create", entity: "payment-link", entityId: id, detail: `appointment ${id} paid via ${paidPaymentId}` });
-  }
-
-  return json({ ok: true, id, invoiceId: invId, paymentLinked: paidPaymentId });
+  await recordAudit(account, { action: "create", entity: "appointment", entityId: apptId, detail: `appointment ${apptId} booked by ${account.role} ${account.name}` });
+  return json({ ok: true, id: apptId, status: "confirmed", invoiceId: invId });
 }

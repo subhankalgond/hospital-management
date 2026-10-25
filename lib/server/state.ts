@@ -1,5 +1,5 @@
 /** Builds the role-scoped data snapshot that GET /api/state returns. */
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";import 
   {
   accounts as accountsT,
@@ -101,6 +101,72 @@ async function inBatches<T extends readonly (() => unknown)[]>(
 export async function buildState(account: SessionAccount): Promise<DataState> {
   const db = await getDb();
 
+  const session = {
+    id: account.id,
+    role: account.role,
+    name: account.name,
+    email: account.email,
+    patientId: account.patientId,
+    doctorId: account.doctorId,
+  };
+
+  // ── Fast path for patients: targeted SQL queries filtered by patient_id ──
+  if (account.role === "patient") {
+    const pid = account.patientId ?? "__none__";
+    const [
+      doctorRows,
+      patientRows,
+      appointmentRows,
+      prescriptionRows,
+      visitRows,
+      invoiceRows,
+      labRows,
+      leaveRows,
+      medicationOrderRows,
+      admissionRows,
+      invoiceItemRows,
+    ] = await inBatches(
+      [
+        () => db.select().from(doctorsT).orderBy(desc(doctorsT.createdAt)),
+        () => db.select().from(patientsT).where(eq(patientsT.id, pid)).limit(1),
+        () => db.select().from(appointmentsT).where(eq(appointmentsT.patientId, pid)).orderBy(desc(appointmentsT.createdAt)),
+        () => db.select().from(prescriptionsT).where(eq(prescriptionsT.patientId, pid)).orderBy(desc(prescriptionsT.date)),
+        () => db.select().from(visitsT).where(eq(visitsT.patientId, pid)).orderBy(desc(visitsT.date)),
+        () => db.select().from(invoicesT).where(eq(invoicesT.patientId, pid)).orderBy(desc(invoicesT.date)),
+        () => db.select().from(labsT).where(eq(labsT.patientId, pid)).orderBy(desc(labsT.requestedOn)),
+        () => db.select().from(leavesT).where(eq(leavesT.status, "approved")).orderBy(desc(leavesT.fromDate)),
+        () => db.select().from(medicationOrdersT).where(eq(medicationOrdersT.patientId, pid)).orderBy(desc(medicationOrdersT.createdAt)),
+        () => db.select().from(admissionsT).where(eq(admissionsT.patientId, pid)).orderBy(desc(admissionsT.admittedAt)),
+        () => db.select().from(invoiceItemsT).where(eq(invoiceItemsT.patientId, pid)).orderBy(desc(invoiceItemsT.createdAt)),
+      ],
+      4
+    );
+
+    return {
+      accounts: [],
+      doctors: doctorRows,
+      patients: patientRows,
+      appointments: appointmentRows,
+      prescriptions: prescriptionRows,
+      visits: visitRows,
+      invoices: invoiceRows,
+      labs: labRows,
+      wards: [],
+      leaves: leaveRows,
+      emergencies: [],
+      beds: [],
+      bedAudit: [],
+      medicationOrders: medicationOrderRows,
+      admissions: admissionRows,
+      invoiceItems: invoiceItemRows,
+      inventory: [],
+      servicePrices: [],
+      symptomAssessments: [],
+      session,
+      meta: { serverTime: new Date().toISOString() },
+    };
+  }
+
   const [
     doctorRows,
     patientRows,
@@ -160,111 +226,64 @@ export async function buildState(account: SessionAccount): Promise<DataState> {
     accountsOut = rows.map((a: AccountRow) => ({ ...a, passwordHash: "", salt: null }));
   }
 
-  const isPatient = account.role === "patient";
-  const pid = account.patientId ?? "__none__";
-
-  const session = {
-    id: account.id,
-    role: account.role,
-    name: account.name,
-    email: account.email,
-    patientId: account.patientId,
-    doctorId: account.doctorId,
-  };
-
   /** Clinical staff (doctor/admin) see full clinical state; pharmacy and lab
    *  roles get only the patient fields they need — never clinical history. */
   const isClinical = account.role === "doctor" || account.role === "admin";
-
-  if (!isPatient) {
-    if (isClinical || account.role === "pharmacy" || account.role === "lab") {
-      const limitedPatients = account.role === "admin" || account.role === "doctor"
-        ? patientRows
-        : patientRows.map((p: PatientRow) => ({
-            id: p.id,
-            patientCode: p.patientCode,
-            name: p.name,
-            dob: p.dob,
-            gender: p.gender,
-            bloodGroup: p.bloodGroup,
-            allergies: p.allergies, // clinically relevant for dispensing / sample handling
-            email: "",
-            phone: "",
-            address: "",
-            conditions: [],
-            immunizations: [],
-            insurance: { provider: "", number: "" },
-            emergencyContact: { name: "", phone: "", relation: "" },
-            createdAt: p.createdAt,
-          }));
-
-      const clinicalState = {
-        accounts: accountsOut,
-        doctors: doctorRows.map((d: DoctorRow) => ({
-          id: d.id,
-          name: d.name,
-          qualification: d.qualification,
-          licenseNo: account.role === "admin" ? d.licenseNo : "",
-          specialty: d.specialty,
-          department: d.department,
-          email: account.role === "admin" ? d.email : "",
-          phone: account.role === "admin" ? d.phone : "",
-          room: d.room,
-          experienceYears: d.experienceYears,
-          rating: d.rating,
-          onCall: d.onCall,
-          shift: d.shift,
-          createdAt: d.createdAt,
-        })),
-        patients: limitedPatients,
-        appointments: account.role === "lab" ? [] : appointmentRows,
-        prescriptions: account.role === "pharmacy" || account.role === "lab" ? [] : prescriptionRows,
-        visits: account.role === "pharmacy" ? [] : visitRows,
-        invoices: isClinical ? invoiceRows : [],
-        labs: labRows.filter((l: LabRow) => l.workflow !== "cancelled" || isClinical),
-        wards: wardsOut,
-        leaves: leaveRows,
-        emergencies: isClinical ? emergencyRows : [],
-        beds: account.role === "admin" ? bedRows : [],
-        bedAudit: account.role === "admin" ? bedAuditRows : [],
-        medicationOrders: medicationOrderRows,
-        admissions: admissionRows,
-        invoiceItems: isClinical ? invoiceItemRows : [],
-        inventory: inventoryRows,
-        servicePrices: servicePriceRows,
-        symptomAssessments: isClinical ? assessmentRows : [],
-        session,
-        meta: { serverTime: new Date().toISOString() },
-      };
-      return clinicalState;
-    }
-  }
-
-  // Patient view: strictly their own data.
-  const mine = <T extends { patientId: string }>(rows: T[]): T[] =>
-    rows.filter((r) => r.patientId === pid);
-  const myPatients = patientRows.filter((p: PatientRow) => p.id === pid);
+  const limitedPatients = isClinical
+    ? patientRows
+    : patientRows.map((p: PatientRow) => ({
+        id: p.id,
+        patientCode: p.patientCode,
+        name: p.name,
+        dob: p.dob,
+        gender: p.gender,
+        bloodGroup: p.bloodGroup,
+        allergies: p.allergies, // clinically relevant for dispensing / sample handling
+        email: "",
+        phone: "",
+        address: "",
+        conditions: [],
+        immunizations: [],
+        insurance: { provider: "", number: "" },
+        emergencyContact: { name: "", phone: "", relation: "" },
+        createdAt: p.createdAt,
+      }));
 
   return {
-    accounts: [],
-    doctors: doctorRows,
-    patients: myPatients,
-    appointments: mine(appointmentRows),
-    prescriptions: mine(prescriptionRows),
-    visits: mine(visitRows),
-    invoices: mine(invoiceRows),
-    labs: mine(labRows),
-    wards: [],
+    accounts: accountsOut,
+    doctors: doctorRows.map((d: DoctorRow) => ({
+      id: d.id,
+      name: d.name,
+      qualification: d.qualification,
+      licenseNo: account.role === "admin" ? d.licenseNo : "",
+      specialty: d.specialty,
+      department: d.department,
+      email: account.role === "admin" ? d.email : "",
+      phone: account.role === "admin" ? d.phone : "",
+      room: d.room,
+      experienceYears: d.experienceYears,
+      rating: d.rating,
+      onCall: d.onCall,
+      shift: d.shift,
+      createdAt: d.createdAt,
+    })),
+    patients: limitedPatients,
+    appointments: account.role === "lab" ? [] : appointmentRows,
+    prescriptions: account.role === "pharmacy" || account.role === "lab" ? [] : prescriptionRows,
+    visits: account.role === "pharmacy" ? [] : visitRows,
+    invoices: isClinical ? invoiceRows : [],
+    labs: labRows.filter((l: LabRow) => l.workflow !== "cancelled" || isClinical),
+    wards: wardsOut,
     leaves: leaveRows,
-    emergencies: [],
-    beds: [],
-    bedAudit: [],
-    medicationOrders: mine(medicationOrderRows),
-    admissions: mine(admissionRows),
-    invoiceItems: mine(invoiceItemRows),
-    inventory: [],
-    servicePrices: [],
-    symptomAssessments: [],
+    emergencies: isClinical ? emergencyRows : [],
+    beds: account.role === "admin" ? bedRows : [],
+    bedAudit: account.role === "admin" ? bedAuditRows : [],
+    medicationOrders: medicationOrderRows,
+    admissions: admissionRows,
+    invoiceItems: isClinical ? invoiceItemRows : [],
+    inventory: inventoryRows,
+    servicePrices: servicePriceRows,
+    symptomAssessments: isClinical ? assessmentRows : [],
     session,
     meta: { serverTime: new Date().toISOString() },
   };

@@ -102,7 +102,7 @@ export type SignUpAdminInput = SignUpInputBase & {
 
 export type SignUpInput = SignUpPatientInput | SignUpDoctorInput | SignUpAdminInput | SignUpStaffInput;
 
-export type AppointmentStatus = "scheduled" | "confirmed" | "completed" | "cancelled" | "no-show";
+export type AppointmentStatus = "scheduled" | "confirmed" | "completed" | "cancelled" | "no-show" | "pending_payment";
 export type VisitStatus = "waiting" | "in-progress" | "completed";
 
 export interface Appointment {
@@ -118,6 +118,9 @@ export interface Appointment {
   queueStatus?: VisitStatus;
   notes?: string;
   createdAt: number;
+  requiresPayment?: boolean;
+  checkout?: { keyId: string; orderId: string; amount: number; currency: string };
+  paymentId?: string;
 }
 
 export interface Prescription {

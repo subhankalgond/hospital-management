@@ -11,6 +11,7 @@ import { dateLabel } from "@/lib/utils";
 
 const FILTERS: { value: AppointmentStatus | "all"; label: string }[] = [
   { value: "all", label: "All" },
+  { value: "pending_payment", label: "Pending payment" },
   { value: "confirmed", label: "Confirmed" },
   { value: "scheduled", label: "Scheduled" },
   { value: "completed", label: "Completed" },
