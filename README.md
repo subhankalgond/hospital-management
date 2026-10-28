@@ -1,11 +1,11 @@
 # CarePulse — Smart Hospital Platform
 
-A full-stack hospital management system: patient & doctor portals, appointments
+A full-stack hospital management system:  patient & doctor portals, appointments
 with live queueing, billing, labs, wards, an AI-assisted Emergency Center with
 triage, smart bed management, and a machine-learning layer (length-of-stay
 forecasting, NLP symptom routing, HL7 FHIR interoperability).
 
-**Stack**: Next.js 14 (App Router) · React 18 · TypeScript · Tailwind CSS ·
+**Stack**:  Next.js 14 (App Router) · React 18 · TypeScript · Tailwind CSS ·
 Drizzle ORM · Supabase Postgres · scikit-learn (training) · Vercel (hosting)
 
 ---
