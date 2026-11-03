@@ -1,6 +1,6 @@
-# CarePulse — Smart Hospital Platform
+# CarePulse  —  Smart Hospital Platform
 
-A full-stack hospital management system:  patient & doctor portals, appointments
+A full-stack hospital management system:  patient & doctor   portals, appointments
 with live queueing, billing, labs, wards, an AI-assisted Emergency Center with
 triage, smart bed management, and a machine-learning layer (length-of-stay
 forecasting, NLP symptom routing, HL7 FHIR interoperability).
