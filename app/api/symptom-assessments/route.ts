@@ -21,11 +21,20 @@ export async function POST(req: Request) {
   if ("response" in guard) return guard.response;
   const account = guard.account;
 
-  const body = await readJson<{ transcript?: string; inputMode?: string; patientId?: string }>(req);
+  const body = await readJson<{ transcript?: string; inputMode?: string; patientId?: string; symptoms?: string[] }>(req);
   if (!body) return apiError("Invalid JSON body", 400);
 
-  const transcript = (body.transcript ?? "").trim();
-  if (!transcript) return apiError("transcript is required", 400);
+  const rawSymptoms = Array.isArray(body.symptoms)
+    ? body.symptoms.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+    : [];
+
+  let transcript = (body.transcript ?? "").trim();
+  if (!transcript && rawSymptoms.length === 0) {
+    return apiError("Please select or describe at least one symptom", 400);
+  }
+  if (!transcript && rawSymptoms.length > 0) {
+    transcript = rawSymptoms.join(", ");
+  }
   if (transcript.length > 2000) return apiError("transcript too long (max 2000 chars)", 400);
 
   const inputMode = body.inputMode === "voice" ? "voice" : "text";
@@ -41,50 +50,72 @@ export async function POST(req: Request) {
     return apiError("No patient profile linked to this account.", 403);
   }
 
-  // 1. analyze (server-side only)
-  const analysis = analyzeSymptoms(transcript);
+  // 1. analyze with multi-symptom clinical decision engine
+  const analysis = analyzeSymptoms(transcript, rawSymptoms);
 
-  // 2. doctor recommendation — a real doctor from the DB whose specialty
+  // 2. doctor recommendation — real doctors from the DB whose specialty
   //    matches the suggested department; never invented.
-  const db = await getDb();
-  const candidateDocs: (typeof doctorsT.$inferSelect)[] = await db
-    .select()
-    .from(doctorsT)
-    .where(eq(doctorsT.department, analysis.suggestedDepartment));
-  const recommended =
-    candidateDocs.sort(
-      (a: typeof doctorsT.$inferSelect, b: typeof doctorsT.$inferSelect) =>
-        b.rating - a.rating || b.experienceYears - a.experienceYears
-    )[0] ?? null;
+  let candidateDocs: (typeof doctorsT.$inferSelect)[] = [];
+  try {
+    const db = await getDb();
+    candidateDocs = await db
+      .select()
+      .from(doctorsT)
+      .where(eq(doctorsT.department, analysis.suggestedDepartment));
+  } catch (err) {
+    console.error("[symptom-assessments] Failed to query doctors from db:", err);
+  }
+
+  const sortedDocs = candidateDocs.sort(
+    (a: typeof doctorsT.$inferSelect, b: typeof doctorsT.$inferSelect) =>
+      b.rating - a.rating || b.experienceYears - a.experienceYears
+  );
+  const recommended = sortedDocs[0] ?? null;
+  const availableDoctors = sortedDocs.slice(0, 4).map((d) => ({
+    id: d.id,
+    name: d.name,
+    specialty: d.specialty,
+    department: d.department,
+    qualification: d.qualification,
+    room: d.room,
+    experienceYears: d.experienceYears,
+    rating: d.rating,
+  }));
 
   const id = newId("SA-", 6);
-  await db.insert(symptomAssessments).values({
-    id,
-    patientId: targetPatientId ?? "unlinked",
-    doctorId: recommended?.id ?? null,
-    transcript,
-    inputMode,
-    extracted: {
-      symptoms: analysis.symptoms,
-      negated: analysis.negated,
-      duration: analysis.duration ?? null,
-      severity: analysis.severity ?? null,
-      version: analysis.version,
-    },
-    suggestedDepartment: analysis.suggestedDepartment,
-    alternativeDepartments: analysis.alternativeDepartments,
-    urgency: analysis.urgency,
-    urgencyNote: analysis.urgencyReason,
-    followUpQuestions: analysis.followUpQuestions,
-    engine: analysis.version,
-  });
+  try {
+    const db = await getDb();
+    await db.insert(symptomAssessments).values({
+      id,
+      patientId: targetPatientId ?? "unlinked",
+      doctorId: recommended?.id ?? null,
+      transcript,
+      inputMode,
+      extracted: {
+        symptoms: analysis.symptoms,
+        negated: analysis.negated,
+        duration: analysis.duration ?? null,
+        severity: analysis.severity ?? null,
+        possibleConditions: analysis.possibleConditions,
+        version: analysis.version,
+      },
+      suggestedDepartment: analysis.suggestedDepartment,
+      alternativeDepartments: analysis.alternativeDepartments,
+      urgency: analysis.urgency,
+      urgencyNote: analysis.urgencyReason,
+      followUpQuestions: analysis.followUpQuestions,
+      engine: analysis.version,
+    });
 
-  await recordAudit(account, {
-    action: "create",
-    entity: "symptom-assessment",
-    entityId: id,
-    detail: `urgency=${analysis.urgency} dept=${analysis.suggestedDepartment} patient=${targetPatientId ?? "unlinked"}`,
-  });
+    await recordAudit(account, {
+      action: "create",
+      entity: "symptom-assessment",
+      entityId: id,
+      detail: `urgency=${analysis.urgency} dept=${analysis.suggestedDepartment} patient=${targetPatientId ?? "unlinked"}`,
+    });
+  } catch (err) {
+    console.error("[symptom-assessments] Failed to persist assessment record to db:", err);
+  }
 
   return json(
     {
@@ -101,6 +132,7 @@ export async function POST(req: Request) {
             experienceYears: recommended.experienceYears,
           }
         : null,
+      availableDoctors,
       disclaimer: ANALYSIS_DISCLAIMER,
     },
     201
