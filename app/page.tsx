@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 export default function IndexRedirect() {
   const router = useRouter();
   const bootState = useStore((s) => s.bootState);
+  const bootError = useStore((s) => s.bootError);
 
   React.useEffect(() => {
     useStore.getState().boot();
@@ -22,6 +23,52 @@ export default function IndexRedirect() {
       router.replace(s ? `/${s.role}` : "/login");
     }
   }, [bootState, router]);
+
+  if (bootState === "error") {
+    return (
+      <div className="flex min-h-dvh items-center justify-center p-4">
+        <div className="flex max-w-md flex-col items-center gap-4 text-center">
+          <div className="rounded-full bg-destructive/10 p-3 text-destructive">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="size-8 stroke-current"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Unable to connect to service</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {bootError || "The database or server is currently unreachable. Please verify database status."}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => useStore.getState().boot()}
+              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
+            >
+              Retry
+            </button>
+            <button
+              onClick={() => {
+                useStore.getState().logout();
+                router.replace("/login");
+              }}
+              className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              Go to Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh items-center justify-center">

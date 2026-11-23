@@ -6,8 +6,13 @@ import { json } from "@/lib/server/api";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const account = await getSessionAccount();
-  if (!account) return json({ error: "Not signed in." }, 401);
-  const state = await buildState(account);
-  return json(state);
+  try {
+    const account = await getSessionAccount();
+    if (!account) return json({ error: "Not signed in." }, 401);
+    const state = await buildState(account);
+    return json(state);
+  } catch (err: unknown) {
+    console.error("[api/state] error:", err);
+    return json({ error: "Service temporarily unavailable. Please try again later." }, 503);
+  }
 }

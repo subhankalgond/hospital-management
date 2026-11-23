@@ -81,34 +81,39 @@ export async function getSessionAccount(): Promise<SessionAccount | null> {
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
-  const db = await getDb();
-  const rows = await db
-    .select({
-      accountId: accounts.id,
-      role: accounts.role,
-      name: accounts.name,
-      email: accounts.email,
-      patientId: accounts.patientId,
-      doctorId: accounts.doctorId,
-      createdAt: accounts.createdAt,
-      expiresAt: sessions.expiresAt,
-    })
-    .from(sessions)
-    .innerJoin(accounts, eq(accounts.id, sessions.accountId))
-    .where(eq(sessions.token, token))
-    .limit(1);
+  try {
+    const db = await getDb();
+    const rows = await db
+      .select({
+        accountId: accounts.id,
+        role: accounts.role,
+        name: accounts.name,
+        email: accounts.email,
+        patientId: accounts.patientId,
+        doctorId: accounts.doctorId,
+        createdAt: accounts.createdAt,
+        expiresAt: sessions.expiresAt,
+      })
+      .from(sessions)
+      .innerJoin(accounts, eq(accounts.id, sessions.accountId))
+      .where(eq(sessions.token, token))
+      .limit(1);
 
-  const row = rows[0];
-  if (!row) return null;
-  if (new Date(row.expiresAt).getTime() < Date.now()) return null;
+    const row = rows[0];
+    if (!row) return null;
+    if (new Date(row.expiresAt).getTime() < Date.now()) return null;
 
-  return {
-    id: row.accountId,
-    role: row.role as Role,
-    name: row.name,
-    email: row.email,
-    patientId: row.patientId ?? undefined,
-    doctorId: row.doctorId ?? undefined,
-    createdAt: row.createdAt,
-  };
+    return {
+      id: row.accountId,
+      role: row.role as Role,
+      name: row.name,
+      email: row.email,
+      patientId: row.patientId ?? undefined,
+      doctorId: row.doctorId ?? undefined,
+      createdAt: row.createdAt,
+    };
+  } catch (err) {
+    console.error("[auth] failed to query session account:", err);
+    return null;
+  }
 }
