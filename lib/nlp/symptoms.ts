@@ -73,6 +73,29 @@ interface RouterDoc {
  */
 const NEVER_ANCHOR = ["hear", "heart", "rear", "near", "year", "yearly", "early", "earth", "kidney", "kidneys", "kidnap", "establish", "corner", "corners", "scorn"];
 
+/** Clinical phrases for Dengue / systemic viral fever (route to General Medicine). */
+const DENGUE_TERMS = [
+  "dengue",
+  "pain behind the eyes",
+  "pain behind eyes",
+  "pain behind my eyes",
+  "retro-orbital",
+  "retro orbital",
+  "high fever",
+  "breakbone",
+  "body ache",
+  "bodyache",
+  "vomitting",
+];
+
+const OPHTHALMOLOGY_CANCEL = [
+  "pain behind the eyes",
+  "pain behind eyes",
+  "pain behind my eyes",
+  "retro-orbital",
+  "retro orbital",
+];
+
 let cached: RouterDoc | null = null;
 
 function loadModel(): RouterDoc {
@@ -134,6 +157,17 @@ function collectAnchorHits(text: string): { bonus: Record<string, number>; match
     }
   }
 
+  // Add specialized General Medicine viral/dengue anchor terms
+  for (const term of DENGUE_TERMS) {
+    let from = 0;
+    for (;;) {
+      const i = text.indexOf(term, from);
+      if (i < 0) break;
+      from = i + term.length;
+      hits.push({ dept: "General Medicine", term, start: i, end: i + term.length });
+    }
+  }
+
   // never-anchor word occurrences (independent of term membership)
   const neverSpans: { start: number; end: number }[] = [];
   for (const term of NEVER_ANCHOR) {
@@ -146,10 +180,25 @@ function collectAnchorHits(text: string): { bonus: Record<string, number>; match
     }
   }
 
+  // Cancellation spans for false Ophthalmology triggers (e.g. retro-orbital pain in dengue)
+  const ophtCancelSpans: { start: number; end: number }[] = [];
+  for (const term of OPHTHALMOLOGY_CANCEL) {
+    let from = 0;
+    for (;;) {
+      const i = text.indexOf(term, from);
+      if (i < 0) break;
+      from = i + term.length;
+      ophtCancelSpans.push({ start: i, end: i + term.length });
+    }
+  }
+
   const kept = hits.filter((h) => {
     const prev = h.start > 0 ? text[h.start - 1] : " ";
     if (/[a-z]/.test(prev)) return false; // anchor starts mid-word → accidental
     if (neverSpans.some((ns) => ns.start <= h.start && h.end <= ns.end)) return false;
+    if (h.dept === "Ophthalmology" && ophtCancelSpans.some((cs) => cs.start <= h.start && h.end <= cs.end)) {
+      return false; // "pain behind eyes" is viral/dengue retro-orbital pain, not ophthalmology
+    }
     return true;
   });
 
@@ -213,6 +262,16 @@ export function routeSymptoms(input: string): SymptomRouting {
   for (const [dept, b] of Object.entries(bonus)) {
     const ci = classes.indexOf(dept);
     if (ci >= 0) scores[ci] += b;
+  }
+
+  // Clinical syndrome boost: Dengue / viral fever presentation
+  // (fever + retro-orbital pain / body ache / rash) belongs in General Medicine
+  const isDengueSyndrome =
+    (text.includes("fever") || text.includes("dengue")) &&
+    (text.includes("behind the eyes") || text.includes("behind eyes") || text.includes("body ache") || text.includes("bodyache") || text.includes("rash"));
+  if (isDengueSyndrome) {
+    const gmIdx = classes.indexOf("General Medicine");
+    if (gmIdx >= 0) scores[gmIdx] += 12.0;
   }
 
   // 3. softmax with an adaptive temperature so the display stays informative:
