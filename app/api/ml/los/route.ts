@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { json, apiError, readJson, requireAccount } from "@/lib/server/api";
 import { predictLos, type LosFeatures } from "@/lib/ml/los";
 

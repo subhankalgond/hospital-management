@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { symptomAssessments, doctors as doctorsT } from "@/db/schema";

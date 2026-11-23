@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { eq } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { getDb } from "@/db";

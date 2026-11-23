@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * GET  /api/billing — inventory + service prices + billable items (auth: doctor/admin, patients: own items via /api/state).
  * POST /api/billing — manage stock and prices (admins only):

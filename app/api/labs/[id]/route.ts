@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * PATCH /api/labs/[id] — Laboratory Panel workflow actions.
  *

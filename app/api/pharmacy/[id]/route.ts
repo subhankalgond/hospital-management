@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 /**
  * PATCH /api/pharmacy/[id] — Pharmacy Panel workflow.
  *

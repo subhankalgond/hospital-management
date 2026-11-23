@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { and, desc, eq } from "drizzle-orm";
 import type { AnyDb } from "@/db";
 import { getDb } from "@/db";

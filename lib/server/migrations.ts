@@ -307,36 +307,43 @@ const g = globalThis as unknown as { __cpMigrationsApplied?: Promise<void> };
 
 /** Apply the upgrade once per process. Additive-only; memoized with version tracking. */
 export function ensureSchema(): Promise<void> {
+  if (process.env.NEXT_PHASE === "phase-production-build") {
+    return Promise.resolve();
+  }
   if (!g.__cpMigrationsApplied) {
     g.__cpMigrationsApplied = (async () => {
-      const { getDb } = await import("@/db");
-      const db = await getDb();
       try {
-        // Create migration tracking table if not exists
-        await db.execute(`create table if not exists _schema_migrations (version integer primary key, applied_at timestamptz default now())`);
-        const checked = await db.execute(`select 1 from _schema_migrations where version = 2 limit 1`);
-        const rows = Array.isArray(checked) ? checked : (checked as any)?.rows ?? [];
-        if (rows.length > 0) {
-          return; // Already up to date!
-        }
-      } catch {
-        // fallback to executing statements
-      }
-
-      for (let i = 0; i < STATEMENTS.length; i++) {
+        const { getDb } = await import("@/db");
+        const db = await getDb();
         try {
-          await db.execute(STATEMENTS[i]);
-        } catch (err) {
-          console.error(
-            `[migrations] statement ${i + 1} failed:`,
-            err instanceof Error ? err.message : err
-          );
+          // Create migration tracking table if not exists
+          await db.execute(`create table if not exists _schema_migrations (version integer primary key, applied_at timestamptz default now())`);
+          const checked = await db.execute(`select 1 from _schema_migrations where version = 2 limit 1`);
+          const rows = Array.isArray(checked) ? checked : (checked as any)?.rows ?? [];
+          if (rows.length > 0) {
+            return; // Already up to date!
+          }
+        } catch {
+          // fallback to executing statements
         }
+
+        for (let i = 0; i < STATEMENTS.length; i++) {
+          try {
+            await db.execute(STATEMENTS[i]);
+          } catch (err) {
+            console.error(
+              `[migrations] statement ${i + 1} failed:`,
+              err instanceof Error ? err.message : err
+            );
+          }
+        }
+        try {
+          await db.execute(`insert into _schema_migrations (version) values (2) on conflict (version) do nothing`);
+        } catch {}
+        await reportDuplicatePatients(db);
+      } catch (err) {
+        console.error("[migrations] ensureSchema failed:", err);
       }
-      try {
-        await db.execute(`insert into _schema_migrations (version) values (2) on conflict (version) do nothing`);
-      } catch {}
-      await reportDuplicatePatients(db);
     })();
   }
   return g.__cpMigrationsApplied;

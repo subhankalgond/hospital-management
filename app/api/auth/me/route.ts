@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { json, requireAccount, apiError } from "@/lib/server/api";
 import { getSessionAccount } from "@/lib/server/auth";
 

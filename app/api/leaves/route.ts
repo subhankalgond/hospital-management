@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { and, eq, ne, lte, gte, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { leaves, appointments, doctors } from "@/db/schema";

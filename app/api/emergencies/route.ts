@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getDb } from "@/db";
 import { emergencyCases, patients } from "@/db/schema";
 import { json, apiError, readJson, newId, requireAccount } from "@/lib/server/api";
