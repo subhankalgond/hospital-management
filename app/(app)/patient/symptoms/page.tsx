@@ -185,6 +185,7 @@ interface SpeechRecognitionLike {
   interimResults: boolean;
   start(): void;
   stop(): void;
+  abort(): void;
   onresult: ((e: SpeechRecognitionEvent) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
@@ -224,8 +225,8 @@ export default function SymptomCheckPage() {
   const [editedAfter, setEditedAfter] = React.useState(false);
   const [listRefresh, setListRefresh] = React.useState(0);
 
+  const isListeningRef = React.useRef(false);
   const recRef = React.useRef<SpeechRecognitionLike | null>(null);
-  const finalRef = React.useRef("");
   const baseRef = React.useRef("");
 
   React.useEffect(() => {
@@ -233,6 +234,15 @@ export default function SymptomCheckPage() {
     setSupported(rec !== null || typeof window === "undefined" ? true : false);
     const w = window as unknown as Record<string, unknown>;
     if (!(w.SpeechRecognition || w.webkitSpeechRecognition)) setSupported(false);
+
+    return () => {
+      isListeningRef.current = false;
+      if (recRef.current) {
+        try {
+          recRef.current.abort();
+        } catch {}
+      }
+    };
   }, []);
 
   function togglePresetSymptom(symptom: string) {
@@ -268,63 +278,128 @@ export default function SymptomCheckPage() {
   }
 
   function stopRecognition() {
-    try {
-      recRef.current?.stop();
-    } catch {
-      /* already stopped */
-    }
+    isListeningRef.current = false;
     setListening(false);
+    if (recRef.current) {
+      try {
+        recRef.current.stop();
+      } catch {
+        try {
+          recRef.current.abort();
+        } catch {}
+      }
+      recRef.current = null;
+    }
   }
 
-  function startRecognition() {
+  async function startRecognition() {
     setSpeechError(null);
     setResult(null);
+
+    // Stop any existing recognition instance cleanly
+    if (recRef.current) {
+      try {
+        recRef.current.abort();
+      } catch {}
+      recRef.current = null;
+    }
+
+    // Explicitly request browser microphone permission via getUserMedia
+    if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (micErr: unknown) {
+        const errName = (micErr as { name?: string })?.name;
+        if (errName === "NotAllowedError" || errName === "PermissionDeniedError") {
+          setSpeechError("Microphone permission was denied. Please click the lock or settings icon in your browser address bar to allow microphone access.");
+          setListening(false);
+          isListeningRef.current = false;
+          return;
+        } else if (errName === "NotFoundError" || errName === "DevicesNotFoundError") {
+          setSpeechError("No microphone hardware was detected on your computer. Please connect a microphone or use keyboard typing.");
+          setListening(false);
+          isListeningRef.current = false;
+          return;
+        }
+      }
+    }
+
     const rec = getRecognition();
     if (!rec) {
       setSupported(false);
-      setSpeechError("Voice recognition is not available in this browser. Please type or select your symptoms instead.");
+      setSpeechError("Voice recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge, or type your symptoms.");
       return;
     }
+
+    baseRef.current = text.trim();
     rec.lang = lang;
     rec.continuous = true;
     rec.interimResults = true;
-    rec.onresult = (e) => {
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const r = e.results[i];
-        if (r.isFinal) finalRef.current += r[0].transcript + " ";
-        else interim += r[0].transcript;
+
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      let sessionTranscript = "";
+      for (let i = 0; i < e.results.length; i++) {
+        sessionTranscript += e.results[i][0].transcript + " ";
       }
-      if (finalRef.current || interim) {
+      sessionTranscript = sessionTranscript.trim();
+      if (sessionTranscript) {
         setInputMode("voice");
         setEditedAfter(false);
-        setText((baseRef.current ? baseRef.current + " " : "") + (finalRef.current + interim).trim());
+        const combined = baseRef.current
+          ? `${baseRef.current} ${sessionTranscript}`
+          : sessionTranscript;
+        setText(combined);
       }
     };
+
     rec.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        setSpeechError("Microphone permission was denied. Allow microphone access in your browser settings, or select symptoms below.");
-      } else if (e.error === "no-speech") {
-        setSpeechError("No speech detected — try again closer to the microphone.");
-      } else if (e.error !== "aborted") {
-        setSpeechError(`Speech recognition error: ${e.error}. You can type or select symptoms instead.`);
+      if (e.error === "no-speech") {
+        // Harmless pause while user is thinking; keep listening
+        return;
       }
-      setListening(false);
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        setSpeechError("Microphone access is blocked. Please allow microphone permissions in your browser address bar.");
+        isListeningRef.current = false;
+        setListening(false);
+      } else if (e.error === "network") {
+        setSpeechError("Voice recognition network service is temporarily unavailable. You can type your symptoms or select chips below.");
+        isListeningRef.current = false;
+        setListening(false);
+      } else if (e.error !== "aborted") {
+        setSpeechError(`Microphone notice (${e.error}). You can continue typing your symptoms.`);
+        isListeningRef.current = false;
+        setListening(false);
+      }
     };
-    rec.onend = () => setListening(false);
+
+    rec.onend = () => {
+      if (isListeningRef.current) {
+        try {
+          rec.start();
+        } catch {
+          isListeningRef.current = false;
+          setListening(false);
+        }
+      } else {
+        setListening(false);
+      }
+    };
+
     recRef.current = rec;
+    isListeningRef.current = true;
     try {
       rec.start();
       setListening(true);
     } catch (err) {
       setSpeechError(err instanceof Error ? err.message : "Could not start the microphone.");
+      isListeningRef.current = false;
       setListening(false);
     }
   }
 
   function reset() {
     baseRef.current = "";
-    finalRef.current = "";
     setText("");
     setSelectedSymptoms([]);
     setCustomSymptomInput("");
