@@ -19,6 +19,8 @@ import {
   ArrowRight,
   ShieldAlert,
   Info,
+  BookOpen,
+  Sparkles,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
@@ -36,13 +38,20 @@ import { PageHeader } from "@/components/ui/misc";
 export interface MatchedConditionUI {
   id: string;
   name: string;
+  icd11Code?: string;
+  category?: string;
   department: string;
+  specialty?: string;
   urgency: "emergency" | "urgent" | "routine";
   description: string;
   matchScore: number;
   matchedSymptoms: string[];
   otherSymptoms: string[];
+  missingClassicSymptoms?: string[];
+  cancerWarningSigns?: string[];
   nextSteps: string;
+  cancerSafetyDisclaimer?: string;
+  requiresBiopsyOrImaging?: boolean;
 }
 
 export interface AvailableDoctorUI {
@@ -64,12 +73,19 @@ interface AnalysisResult {
     suggestedDepartment: string;
     alternativeDepartments: string[];
     possibleConditions?: MatchedConditionUI[];
+    cancerWarningsDetected?: { symptomId: string; warningName: string; advice: string }[];
     symptoms: { name: string; negated: boolean; text: string }[];
     negated: string[];
     duration?: string;
     severity?: string;
     followUpQuestions: { id: string; question: string; reason: string }[];
     explanation: string;
+    kbMetadata?: {
+      totalDiseases: number;
+      totalSymptoms: number;
+      icd11Standard: string;
+      version: string;
+    };
     version: string;
   };
   doctor: {
@@ -85,26 +101,80 @@ interface AnalysisResult {
   disclaimer: string;
 }
 
-/* ─────────────── common quick symptom chips ─────────────── */
+/* ─────────────── grouped quick symptom presets ─────────────── */
 
-const COMMON_SYMPTOM_PRESETS = [
-  "High fever",
-  "Headache",
-  "Body ache",
-  "Pain behind the eyes",
-  "Nausea",
-  "Vomiting",
-  "Skin rash",
-  "Cough",
-  "Difficulty breathing",
-  "Joint pain",
-  "Swelling",
-  "Difficulty moving",
-  "Chest pain",
-  "Sore throat",
-  "Abdominal pain",
-  "Dizziness",
-  "Fatigue",
+const SYMPTOM_PRESET_CATEGORIES: { name: string; symptoms: string[] }[] = [
+  {
+    name: "General & Constitutional",
+    symptoms: [
+      "High fever",
+      "Chills and shivering",
+      "Night sweats",
+      "Weight loss without trying",
+      "Extreme tiredness or exhaustion",
+      "Unexplained lump or mass",
+    ],
+  },
+  {
+    name: "Head, Neck & Neurological",
+    symptoms: [
+      "Headache",
+      "Pain behind the eyes",
+      "Dizziness or lightheadedness",
+      "Face drooping on one side",
+      "Slurred speech or trouble speaking",
+      "Weakness on one side of the body",
+      "Seizure or convulsions",
+      "Shaking hands or tremors",
+    ],
+  },
+  {
+    name: "Cardiovascular & Respiratory",
+    symptoms: [
+      "Chest pain or tightness",
+      "Pain radiating to left arm or jaw",
+      "Shortness of breath",
+      "Whistling or wheezing sound",
+      "Cough lasting more than 3 weeks",
+      "Coughing up blood",
+      "Racing or fluttering heartbeat",
+      "Swelling in ankles or legs",
+      "Pain and swelling in one calf",
+    ],
+  },
+  {
+    name: "Gastrointestinal & Digestive",
+    symptoms: [
+      "Nausea and vomiting",
+      "Stomach pain or belly cramps",
+      "Severe pain in lower right belly",
+      "Difficulty swallowing food",
+      "Yellowing of skin or eyes",
+      "Blood in stool or black stools",
+      "Persistent loose watery stools",
+    ],
+  },
+  {
+    name: "Musculoskeletal & Skin",
+    symptoms: [
+      "Joint pain or aching joints",
+      "Swollen red hot joints",
+      "Difficulty moving or morning stiffness",
+      "Generalized body ache",
+      "Skin rash or red spots",
+      "Changing mole or dark skin growth",
+      "Sore or ulcer that does not heal",
+    ],
+  },
+  {
+    name: "Genitourinary & Hormonal",
+    symptoms: [
+      "Burning or painful urination",
+      "Blood in urine",
+      "Excessive thirst and frequent urination",
+      "Abnormal vaginal bleeding",
+    ],
+  },
 ];
 
 /* ─────────────── speech recognition hook ─────────────── */
@@ -142,6 +212,7 @@ export default function SymptomCheckPage() {
 
   const [selectedSymptoms, setSelectedSymptoms] = React.useState<string[]>([]);
   const [customSymptomInput, setCustomSymptomInput] = React.useState("");
+  const [activeCategoryTab, setActiveCategoryTab] = React.useState<string>("All");
   const [text, setText] = React.useState("");
   const [listening, setListening] = React.useState(false);
   const [speechError, setSpeechError] = React.useState<string | null>(null);
@@ -301,21 +372,32 @@ export default function SymptomCheckPage() {
 
   const r = result;
 
+  // Filter symptoms according to selected category tab
+  const displayedCategories =
+    activeCategoryTab === "All"
+      ? SYMPTOM_PRESET_CATEGORIES
+      : SYMPTOM_PRESET_CATEGORIES.filter((c) => c.name.toLowerCase().includes(activeCategoryTab.toLowerCase()));
+
   return (
     <>
       <PageHeader
-        kicker="Symptom Assessment"
-        title="Multi-Symptom Diagnostic Checker"
-        description="Select or describe your combination of symptoms to receive AI-assisted clinical decision support, possible conditions, and recommended specialists."
+        kicker="WHO ICD-11 & MedlinePlus Aligned"
+        title="Multi-Symptom Disease & Clinical Intelligence System"
+        description="Select or describe any combination of symptoms across oncology, cardiology, neurology, infectious disease, and rare conditions for comprehensive differential decision support."
       />
 
-      {/* privacy notice */}
+      {/* classification standard notice */}
       <Card className="mb-6 border-info/30 bg-info/5">
         <CardContent className="flex items-start gap-3 p-4 text-sm">
-          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-info" />
-          <p className="text-muted-foreground">
-            Your health symptoms are evaluated on this hospital&apos;s secure server — your data is never sent to external third-party advertisers. All assessments provide clinical decision support and do not replace an in-person medical diagnosis.
-          </p>
+          <BookOpen className="mt-0.5 size-4 shrink-0 text-info" />
+          <div className="space-y-1 text-muted-foreground">
+            <p className="font-semibold text-foreground">
+              WHO ICD-11 International Medical Terminology & MedlinePlus Standard
+            </p>
+            <p>
+              This intelligence system cross-references patient presentations against structured WHO ICD-11 disease classifications, NCCN oncology red-flag protocols, and MedlinePlus clinical evidence. All outputs represent informational decision support and require formal in-person clinician confirmation.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -329,7 +411,7 @@ export default function SymptomCheckPage() {
                 <div className="flex items-center gap-3 text-destructive">
                   <AlertTriangle className="size-6 shrink-0 animate-bounce" />
                   <h3 className="text-lg font-bold uppercase tracking-wider">
-                    Emergency Warning: Immediate Care Required
+                    Critical Emergency: Immediate Hospital Care Required
                   </h3>
                 </div>
                 <p className="text-sm font-medium text-foreground">
@@ -340,11 +422,42 @@ export default function SymptomCheckPage() {
                     href="tel:112"
                     className="inline-flex items-center gap-2 rounded bg-destructive px-5 py-2.5 text-sm font-semibold uppercase tracking-wider text-destructive-foreground shadow hover:bg-destructive/90 transition-colors"
                   >
-                    <PhoneCall className="size-4" /> Call 112 (Emergency)
+                    <PhoneCall className="size-4" /> Call 112 (Emergency Services)
                   </a>
                   <p className="text-xs font-semibold text-destructive">
-                    Do not wait for an appointment. Proceed immediately to the nearest Emergency Center.
+                    Do not wait for a routine appointment. Proceed immediately to the nearest Emergency Center.
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Cancer Warning Signs Safety Alert */}
+          {r.analysis.cancerWarningsDetected && r.analysis.cancerWarningsDetected.length > 0 && (
+            <Card className="border border-amber-500/50 bg-amber-500/10 shadow-sm">
+              <CardContent className="space-y-3 p-5">
+                <div className="flex items-center gap-2.5 text-amber-900 dark:text-amber-200">
+                  <ShieldAlert className="size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <h4 className="font-bold uppercase tracking-wider text-sm">
+                    Clinical Oncology Red-Flag Screening Alert
+                  </h4>
+                </div>
+                <p className="text-xs text-foreground/90 leading-relaxed">
+                  The following recognized clinical warning sign(s) were identified in your presentation:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {r.analysis.cancerWarningsDetected.map((w) => (
+                    <Badge
+                      key={w.symptomId}
+                      className="bg-amber-500/20 text-amber-950 dark:text-amber-100 border-amber-500/40 text-xs py-1"
+                    >
+                      Warning: {w.warningName}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="rounded border border-amber-500/30 bg-background/80 p-3 text-xs leading-relaxed text-muted-foreground">
+                  <span className="font-semibold text-foreground">Essential Cancer Safety Information: </span>
+                  Symptoms alone can <span className="font-semibold">NEVER confirm or rule out cancer</span>. Many warning signs stem from common, non-cancerous conditions. However, timely evaluation by an Oncologist or Specialist involving physical examination, diagnostic imaging (e.g., CT, MRI, Ultrasound, Mammography), and histological tissue biopsy is required for accurate medical diagnosis.
                 </div>
               </CardContent>
             </Card>
@@ -353,26 +466,31 @@ export default function SymptomCheckPage() {
           {/* Possible Conditions & Differential Analysis */}
           <Card>
             <CardHeader className="border-b bg-muted/20 pb-4">
-              <CardTitle className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Activity className="size-5 text-primary" />
-                  <span>Possible Conditions & Clinical Analysis</span>
+                  <CardTitle className="text-lg">Differential Clinical Analysis & Possible Conditions</CardTitle>
                 </div>
-                <Badge
-                  variant={
-                    r.analysis.urgency === "emergency"
-                      ? "destructive"
-                      : r.analysis.urgency === "urgent"
-                        ? "warning"
-                        : "outline"
-                  }
-                  className="uppercase tracking-wider text-[11px]"
-                >
-                  Urgency: {r.analysis.urgency}
-                </Badge>
-              </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs font-mono">
+                    WHO ICD-11 Reference
+                  </Badge>
+                  <Badge
+                    variant={
+                      r.analysis.urgency === "emergency"
+                        ? "destructive"
+                        : r.analysis.urgency === "urgent"
+                          ? "warning"
+                          : "outline"
+                    }
+                    className="uppercase tracking-wider text-[11px]"
+                  >
+                    Triage: {r.analysis.urgency}
+                  </Badge>
+                </div>
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Clinical correlation based on your reported combination of symptoms. Preliminary analysis for guidance only.
+                Evidence-based pattern correlation using ICD-11 terminology. Preliminary differential decision support — not a definitive medical diagnosis.
               </p>
             </CardHeader>
             <CardContent className="space-y-5 p-6">
@@ -381,18 +499,26 @@ export default function SymptomCheckPage() {
                   {r.analysis.possibleConditions.map((cond) => (
                     <div
                       key={cond.id}
-                      className="rounded-lg border border-border bg-card p-5 shadow-sm transition-all hover:border-primary/40 space-y-3"
+                      className="rounded-lg border border-border bg-card p-5 shadow-sm transition-all hover:border-primary/40 space-y-3.5"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <h4 className="font-serif text-lg font-bold text-foreground">
                             {cond.name}
                           </h4>
+                          {cond.icd11Code && (
+                            <Badge
+                              variant="secondary"
+                              className="font-mono text-xs bg-muted text-muted-foreground border border-border"
+                            >
+                              ICD-11: {cond.icd11Code}
+                            </Badge>
+                          )}
                           <Badge
                             variant="default"
                             className="bg-primary/90 text-primary-foreground font-mono text-xs"
                           >
-                            {cond.matchScore}% Match
+                            {cond.matchScore}% Overlap
                           </Badge>
                           <Badge
                             variant={
@@ -407,9 +533,16 @@ export default function SymptomCheckPage() {
                             {cond.urgency}
                           </Badge>
                         </div>
-                        <Badge variant="secondary" className="text-xs font-semibold">
-                          Specialty: {cond.department}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {cond.category && (
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              {cond.category}
+                            </Badge>
+                          )}
+                          <Badge variant="secondary" className="text-xs font-semibold">
+                            Dept: {cond.department}
+                          </Badge>
+                        </div>
                       </div>
 
                       <p className="text-sm text-foreground/90 leading-relaxed">
@@ -420,7 +553,7 @@ export default function SymptomCheckPage() {
                       {cond.matchedSymptoms.length > 0 && (
                         <div className="space-y-1.5 pt-1">
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            Symptoms matching your input:
+                            Matching symptoms identified:
                           </p>
                           <div className="flex flex-wrap gap-1.5">
                             {cond.matchedSymptoms.map((sym) => (
@@ -435,29 +568,37 @@ export default function SymptomCheckPage() {
                         </div>
                       )}
 
-                      {/* Other associated symptoms */}
-                      {cond.otherSymptoms.length > 0 && (
+                      {/* Missing classic symptoms */}
+                      {cond.missingClassicSymptoms && cond.missingClassicSymptoms.length > 0 && (
                         <div className="space-y-1.5">
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                            Other commonly associated symptoms:
+                            Classic symptoms not reported:
                           </p>
                           <div className="flex flex-wrap gap-1.5">
-                            {cond.otherSymptoms.map((sym) => (
+                            {cond.missingClassicSymptoms.map((sym) => (
                               <Badge
                                 key={sym}
                                 variant="outline"
-                                className="text-xs text-muted-foreground"
+                                className="text-xs text-muted-foreground border-dashed"
                               >
-                                {sym}
+                                Absent: {sym}
                               </Badge>
                             ))}
                           </div>
                         </div>
                       )}
 
+                      {/* Cancer Safety Disclaimer for Oncology conditions */}
+                      {cond.cancerSafetyDisclaimer && (
+                        <div className="rounded border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
+                          <span className="font-semibold">Diagnostic Requirement: </span>
+                          {cond.cancerSafetyDisclaimer}
+                        </div>
+                      )}
+
                       {/* Recommended next steps */}
                       <div className="rounded border border-primary/20 bg-primary/5 p-3 text-xs leading-relaxed mt-2">
-                        <span className="font-semibold text-primary">Recommended Next Steps: </span>
+                        <span className="font-semibold text-primary">Recommended Clinical Next Steps: </span>
                         <span className="text-foreground/90">{cond.nextSteps}</span>
                       </div>
                     </div>
@@ -467,25 +608,25 @@ export default function SymptomCheckPage() {
                 <div className="rounded-lg border border-border bg-muted/30 p-5 text-sm text-muted-foreground space-y-2">
                   <div className="flex items-center gap-2 font-semibold text-foreground">
                     <Info className="size-4 text-info" />
-                    <span>No specific condition pattern matched</span>
+                    <span>Inconclusive / No specific disease pattern matched</span>
                   </div>
                   <p>
-                    The combination of symptoms entered did not match a specific disease pattern in our clinical database. Many symptoms are non-specific and overlap across multiple medical areas.
+                    The combination of symptoms entered did not match a specific disease entity in our clinical knowledge base. Many conditions share non-specific features.
                   </p>
                   <p>
-                    We recommend consulting a General Physician for an in-person physical examination and diagnostic evaluation.
+                    We recommend scheduling an in-person physical examination with a General Physician for formal clinical evaluation and baseline lab testing.
                   </p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Recommended Department & Doctor */}
+          {/* Recommended Department & Real Hospital Clinician */}
           <div className="grid gap-4 sm:grid-cols-2">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Recommended Department
+                  Recommended Specialty Department
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -497,7 +638,7 @@ export default function SymptomCheckPage() {
                 </p>
                 {r.analysis.alternativeDepartments.length > 0 && (
                   <p className="text-xs text-muted-foreground pt-1">
-                    <span className="font-semibold">Alternative specialties to consider:</span>{" "}
+                    <span className="font-semibold">Alternative specialties:</span>{" "}
                     {r.analysis.alternativeDepartments.join(", ")}
                   </p>
                 )}
@@ -538,15 +679,20 @@ export default function SymptomCheckPage() {
                     )}
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No specialist is currently listed for {r.analysis.suggestedDepartment} in this facility. Please contact the front desk or consult General Medicine.
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      No specialist is currently listed for <span className="font-semibold">{r.analysis.suggestedDepartment}</span> in this hospital&apos;s directory.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Please consult <Link href="/patient/appointments?dept=General%20Medicine" className="text-primary underline">General Medicine</Link> or contact the hospital front desk for an external specialty referral.
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Other available doctors in this department */}
+          {/* Other available clinicians in this facility */}
           {r.availableDoctors && r.availableDoctors.length > 1 && (
             <Card>
               <CardHeader className="pb-2">
@@ -582,18 +728,18 @@ export default function SymptomCheckPage() {
             </Card>
           )}
 
-          {/* Extracted Symptoms & Follow-Up Prompts */}
+          {/* Symptom Extraction & Clinical Summary */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">
-                Symptom Extraction & Clinical Summary
+                Recognized Symptoms & Transparency Review
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {r.analysis.symptoms.length > 0 && (
                 <div className="space-y-1.5">
                   <p className="text-xs font-semibold text-muted-foreground">
-                    Recognized symptoms:
+                    Recognized symptoms in your submission:
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {r.analysis.symptoms.map((s) => (
@@ -612,7 +758,7 @@ export default function SymptomCheckPage() {
               {r.analysis.followUpQuestions.length > 0 && (
                 <div className="rounded border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
                   <p className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
-                    <ClipboardEdit className="size-4" /> Recommended clinical points to discuss with your doctor:
+                    <ClipboardEdit className="size-4" /> Recommended clinical points to mention to your clinician:
                   </p>
                   <ul className="space-y-1.5 text-xs text-muted-foreground">
                     {r.analysis.followUpQuestions.map((q) => (
@@ -652,45 +798,72 @@ export default function SymptomCheckPage() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center justify-between">
-                <span>Select Symptoms (Multiple)</span>
+                <span>Select Symptoms by Clinical Category</span>
                 <span className="text-xs font-normal text-muted-foreground">
                   {selectedSymptoms.length} selected
                 </span>
               </CardTitle>
               <p className="text-xs text-muted-foreground">
-                Click common symptoms to quickly add them, or type additional symptoms below.
+                Browse categories or use the search box to add symptoms. Select as many as apply to your current condition.
               </p>
+
+              {/* Category Filter Tabs */}
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {["All", "Constitutional", "Neurological", "Cardiovascular", "Digestive", "Musculoskeletal", "Genitourinary"].map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setActiveCategoryTab(tab)}
+                    className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                      activeCategoryTab === tab
+                        ? "bg-primary text-primary-foreground font-semibold"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                {COMMON_SYMPTOM_PRESETS.map((preset) => {
-                  const isSelected = selectedSymptoms.some(
-                    (s) => s.toLowerCase() === preset.toLowerCase()
-                  );
-                  return (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => togglePresetSymptom(preset)}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                        isSelected
-                          ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary ring-offset-1"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-border"
-                      }`}
-                    >
-                      {isSelected ? <Check className="size-3.5" /> : <Plus className="size-3.5" />}
-                      {preset}
-                    </button>
-                  );
-                })}
+              <div className="space-y-4">
+                {displayedCategories.map((cat) => (
+                  <div key={cat.name} className="space-y-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {cat.name}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {cat.symptoms.map((preset) => {
+                        const isSelected = selectedSymptoms.some(
+                          (s) => s.toLowerCase() === preset.toLowerCase()
+                        );
+                        return (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => togglePresetSymptom(preset)}
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                              isSelected
+                                ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary ring-offset-1"
+                                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-border"
+                            }`}
+                          >
+                            {isSelected ? <Check className="size-3.5" /> : <Plus className="size-3.5" />}
+                            {preset}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* Custom symptom input */}
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex items-center gap-2 pt-3 border-t">
                 <input
                   type="text"
                   className="h-9 flex-1 rounded border border-border bg-card px-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  placeholder='Add any other symptom (e.g. "pain behind the eyes", "vomiting", "stiff neck")'
+                  placeholder='Type any other symptom (e.g. "pain behind the eyes", "unexplained weight loss", "coughing blood")'
                   value={customSymptomInput}
                   onChange={(e) => setCustomSymptomInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -715,7 +888,7 @@ export default function SymptomCheckPage() {
               {selectedSymptoms.length > 0 && (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
                   <div className="flex items-center justify-between text-xs font-semibold text-primary">
-                    <span>Selected Symptoms ({selectedSymptoms.length}):</span>
+                    <span>Active Selected Symptoms ({selectedSymptoms.length}):</span>
                     <button
                       type="button"
                       onClick={clearAllSymptoms}
@@ -751,7 +924,7 @@ export default function SymptomCheckPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center justify-between text-base">
-                <span>Additional Details or Voice Description (Optional)</span>
+                <span>Free-Text Clinical Narrative or Voice Dictation (Optional)</span>
                 <span className="text-xs font-normal text-muted-foreground">
                   {editedAfter ? "edited by you" : inputMode === "voice" ? "from voice" : "typed"}
                 </span>
@@ -760,7 +933,7 @@ export default function SymptomCheckPage() {
             <CardContent className="space-y-4">
               <textarea
                 className="min-h-24 w-full rounded border border-border bg-card px-3.5 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
-                placeholder='Optionally describe duration, severity, or additional details (e.g. "I also have severe nausea and high fever for 3 days without cough")'
+                placeholder='Optionally describe duration, severity, or additional context (e.g. "I have had a high fever and severe headache for 4 days with nausea but no cough")'
                 value={text}
                 maxLength={2000}
                 onChange={(e) => {
@@ -769,7 +942,7 @@ export default function SymptomCheckPage() {
                   setEditedAfter(true);
                   stopRecognition();
                 }}
-                aria-label="Additional symptom details"
+                aria-label="Additional clinical symptom details"
               />
 
               {/* mic controls */}
@@ -818,7 +991,7 @@ export default function SymptomCheckPage() {
               <div className="flex items-center justify-between pt-2 border-t">
                 <p className="text-xs text-muted-foreground">
                   {selectedSymptoms.length > 0
-                    ? `${selectedSymptoms.length} symptom(s) selected`
+                    ? `${selectedSymptoms.length} symptom(s) active`
                     : "Select chips or type description"}
                 </p>
                 <Button
@@ -826,7 +999,7 @@ export default function SymptomCheckPage() {
                   disabled={busy || (selectedSymptoms.length === 0 && text.trim().length < 3)}
                   className="font-semibold"
                 >
-                  {busy ? "Analyzing symptoms…" : "Analyze Symptoms"}
+                  {busy ? "Evaluating clinical profile…" : "Evaluate Symptoms"}
                 </Button>
               </div>
             </CardContent>
@@ -836,7 +1009,6 @@ export default function SymptomCheckPage() {
 
       {/* past assessments from DB */}
       <PastAssessments
-        patientId={session?.patientId}
         doctors={doctors.map((d) => ({ id: d.id, name: d.name }))}
         refreshKey={listRefresh}
       />
@@ -859,7 +1031,6 @@ function PastAssessments({
   doctors,
   refreshKey,
 }: {
-  patientId?: string;
   doctors: { id: string; name: string }[];
   refreshKey: number;
 }) {
